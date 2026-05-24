@@ -1,0 +1,1 @@
+Create the 3D object of an IKEA-style cabinet door panel using Python Blender code, featuring a tall, thin rectangular slab with clean flat surfaces, sharp edges, and minimal decorative detailing.

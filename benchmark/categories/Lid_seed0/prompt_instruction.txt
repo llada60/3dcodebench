@@ -1,0 +1,1 @@
+Create the 3D object of a flat circular pot lid using Python Blender code. The object should feature a wide flat disc with a shallow dome or flat profile, a thin downward-facing rim around the perimeter, and a small cylindrical or rounded knob handle mounted at the center top.

@@ -1,0 +1,1 @@
+Create the 3D object of a palm tree using Python Blender code. The object should feature a tall straight trunk with horizontal ring ridges, a prominent mid-trunk bulge covered in dense brown fibrous stub clusters, and a crown of spreading fan-like fronds at the top.

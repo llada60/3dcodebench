@@ -1,0 +1,1 @@
+Create the 3D base mesh object of a prickly pear cactus (Opuntia) using Python Blender code. The object should feature multiple smooth flat oval pad segments stacked and connected vertically, clean elliptical pad geometry with pinched connection points, and a plain white diffuse material to expose the underlying mesh structure without surface spines.

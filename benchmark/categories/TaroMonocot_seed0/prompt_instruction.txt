@@ -1,0 +1,1 @@
+Create the 3D object of a taro plant using Python Blender code, featuring multiple large, broad, heart-shaped leaves mounted on tall, smooth petiole stems emerging from a central base, with each leaf having a slightly wavy edge and gentle downward droop, rendered in a light green material.

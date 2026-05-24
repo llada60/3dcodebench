@@ -1,0 +1,1 @@
+Create the 3D object of a bathroom hardware toilet paper holder (or towel bar bracket) using Python Blender code. The object should feature a circular wall-mount base disc, two cylindrical rods extending horizontally outward, and a dark teal metallic material with smooth glossy shading.

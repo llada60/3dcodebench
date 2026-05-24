@@ -1,0 +1,1 @@
+Create the 3D object of a wine glass using Python Blender code. The object should feature a rounded open bowl that narrows toward the base, a thin cylindrical stem, and a wide flat circular base disc, with a semi-transparent bowl.

@@ -1,0 +1,1 @@
+Create the 3D object of a rectangular wall mirror using Python Blender code. The object should feature a flat rectangular frame of uniform border width surrounding a large central panel representing the reflective surface, with the frame having a slim profile and slightly raised edge relative to the panel.

@@ -1,0 +1,1 @@
+Create the 3D object of a flat-panel computer monitor using Python Blender code. The object should feature a thin rectangular display panel with a slim metallic bezel, a central pedestal arm, a wide rectangular base stand, and a screen surface with emissive material to simulate a lit display.

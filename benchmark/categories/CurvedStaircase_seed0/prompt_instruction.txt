@@ -1,0 +1,1 @@
+To create the 3D object of a curved staircase using python blender code, one would generate a swept stair path along a curved Bezier curve, extrude each tread and riser along that path, model curved handrails matching the arc, and apply a dark wood texture with a glossy finish to simulate polished mahogany.

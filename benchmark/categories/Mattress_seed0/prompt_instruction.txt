@@ -1,0 +1,1 @@
+Create the 3D object of a mattress using Python Blender code, featuring a rectangular padded slab with rounded beveled edges, a quilted diamond-pattern surface with subtle tufting indentations across the top face, and uniform thickness throughout.

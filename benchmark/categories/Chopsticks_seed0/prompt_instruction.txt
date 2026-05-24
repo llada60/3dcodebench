@@ -1,0 +1,1 @@
+Create the 3D object of a pair of chopsticks using Python Blender code. The object should feature two long slender tapered rods with a rectangular cross-section at the top that tapers to a rounded tip, arranged in a loosely crossed resting position.

@@ -1,0 +1,1 @@
+Create the 3D object of a square tin can using Python Blender code. The object should feature a boxy rectangular body with rounded vertical edges, a flat recessed lid on top, and proportions close to a cube with uniform wall thickness.

@@ -1,0 +1,22 @@
+# Inference config for GPT-5.4 nano on the 3DProBench eval set.
+# Pass to run_inference.py:  python run_inference.py --config config/gpt_5_4_nano.yaml
+
+provider: openai
+api_key: ${GEMINI_API_KEY}  # set via env var (or replace this placeholder)
+
+model: gpt-5.4-nano
+# GPT-5.x: temperature ignored (only 1 accepted); adapter omits it.
+temperature: 1.0
+thinking: medium                # mapped to reasoning_effort
+max_output_tokens: 65536
+
+prompt_type: description
+instances: null
+
+# Tier on this key: 5000 RPM, 2M TPM for mini/nano. nano is fastest of the
+# OpenAI bunch, so push workers even higher than mini.
+max_workers: 32
+rpm: 3000
+tpm: 1800000
+overwrite: false
+output_dir: null

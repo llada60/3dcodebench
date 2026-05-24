@@ -1,0 +1,1 @@
+Create the 3D object of a textured conch shell using Python Blender code, featuring a broad rounded body whorl with a pointed spiral spire, pronounced wavy ridges on the surface, a wide flared aperture, and a procedural brown-and-cream undulating pattern material that follows the shell's growth structure.

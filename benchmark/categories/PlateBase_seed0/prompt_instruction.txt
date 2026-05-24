@@ -1,0 +1,1 @@
+Create the 3D object of a round dinner plate using Python Blender code, featuring a flat circular disc with uniform thickness, smooth rounded edges, and a simple solid-colored appearance.

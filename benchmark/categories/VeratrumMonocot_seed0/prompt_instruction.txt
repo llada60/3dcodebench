@@ -1,0 +1,1 @@
+Create the 3D object of a veratrum plant using Python Blender code, featuring a basal cluster of broad, pointed leaves with visible ribs and a tall, arching flower stalk emerging from the center, topped with a slender raceme of small florets, rendered in muted green tones.

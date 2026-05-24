@@ -1,0 +1,1 @@
+Create the 3D object of a dandelion puffball using Python Blender code, featuring a spherical head composed of many fine radiating seed filaments arranged in a globe shape, mounted on a single long curved green stem with slight natural bending.

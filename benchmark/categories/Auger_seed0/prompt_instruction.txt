@@ -1,0 +1,1 @@
+Create the 3D object of a textured auger shell using Python Blender code, featuring an elongated conical spiral form with multiple rounded whorls decreasing in size toward a sharp apex, with a procedural wavy brown-and-cream material pattern that follows the spiral contours of the shell surface.

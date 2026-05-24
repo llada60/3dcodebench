@@ -1,0 +1,1 @@
+Create the 3D object of a wooden plate rack using Python Blender code, featuring a rectangular base frame constructed from horizontal bars, with pairs of vertical cylindrical dowel pegs rising from the frame to create slots for holding plates upright.

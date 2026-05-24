@@ -1,0 +1,1 @@
+Create the 3D object of an upholstered armchair using Python Blender code, featuring a rectangular base with two solid armrests, a padded seat cushion, a curved backrest, and an attached footrest panel extending from the front edge.

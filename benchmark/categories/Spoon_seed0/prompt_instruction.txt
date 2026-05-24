@@ -1,0 +1,1 @@
+Create the 3D object of a dining spoon using Python Blender code. The object should feature a long slender flat handle that gradually curves and widens into an oval concave bowl at the head, with a smooth continuous surface throughout.

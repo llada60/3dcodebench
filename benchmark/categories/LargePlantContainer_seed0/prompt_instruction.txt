@@ -1,0 +1,1 @@
+Create the 3D object of a large shallow plant container with a potted plant using Python Blender code. The object should feature a wide low-profile bowl-shaped container with a rounded exterior and filled soil surface, supporting a cluster of broad-leafed green plants growing upward from the center.

@@ -1,0 +1,27 @@
+# Inference config for GPT-5.5 on the 3DProBench eval set.
+# Pass to run_inference.py:  python run_inference.py --config config/gpt_5_5.yaml
+
+# --- Auth ---
+provider: openai
+api_key: ${GEMINI_API_KEY}  # set via env var (or replace this placeholder)
+
+# --- Model & generation ---
+model: gpt-5.5
+# GPT-5.x: temperature ignored (only 1 accepted); adapter omits it.
+temperature: 1.0
+thinking: medium                # mapped to reasoning_effort
+max_output_tokens: 65536
+
+# --- Eval scope ---
+prompt_type: description
+instances: null
+
+# --- Runtime ---
+# Tier on this key: 5000 RPM, 1M TPM for 5.4/5.5. 5.5 is the slowest /
+# largest of the gpt-5.x family; w=20 is a balance between throughput
+# and burst-induced 429 storms.
+max_workers: 20
+rpm: 2500
+tpm: 900000
+overwrite: false
+output_dir: null

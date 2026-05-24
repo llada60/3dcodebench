@@ -1,0 +1,1 @@
+Create the 3D object of a mushroom stem using Python Blender code, featuring an elongated curved tube shape with a rough pebbled surface, a slightly tapered top opening, a wider base, and a natural upward-curving growth direction.

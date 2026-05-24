@@ -1,0 +1,1 @@
+Create the 3D object of a pile of boulders using Python Blender code. The object should feature a cluster of multiple rough-surfaced rocks of varying sizes arranged in a natural heap, with each individual rock having an irregular angular shape and coarse surface detail, all rendered with gray stone coloring.

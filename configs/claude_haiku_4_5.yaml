@@ -1,0 +1,31 @@
+# Inference config for Claude Haiku 4.5 on the 3DProBench eval set.
+# Pass to run_inference.py:  python run_inference.py --config config/claude_haiku_4_5.yaml
+
+# --- Auth ---
+provider: anthropic
+api_key: ${GEMINI_API_KEY}  # set via env var (or replace this placeholder)
+
+# --- Model & generation ---
+model: claude-haiku-4-5
+# NOTE on temperature: Anthropic 4.x rejects temperature != 1 when thinking
+# is enabled. The adapter drops the param in that case, so this 1.0 is mainly
+# documentation; setting 0.7 here would be silently overridden to default 1.
+temperature: 1.0
+thinking: medium                # off | low | medium | high
+                                # Haiku 4.5 only supports enabled+budget_tokens
+                                # (no output_config.effort, no adaptive).
+                                # Mapped to budget_tokens 2K/8K/24K.
+max_output_tokens: 64000        # haiku-4-5 caps at 64K output
+
+# --- Eval scope ---
+prompt_type: description
+instances: null
+
+# --- Runtime ---
+# Tier limits seen on this key: 1000 RPM, 450K input TPM, 90K output TPM.
+# Output TPM is the binding cap with thinking=medium + 65K cap.
+max_workers: 8
+rpm: 600
+tpm: 350000
+overwrite: false
+output_dir: null                # set via --output-dir on the CLI

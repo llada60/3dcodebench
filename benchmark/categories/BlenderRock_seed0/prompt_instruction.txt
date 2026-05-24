@@ -1,0 +1,1 @@
+Create the 3D object of a natural rock using Python Blender code. The object should feature an irregular, roughly rounded shape with layered ridges, crevices, and a coarse surface detail resembling weathered stone, with a flat base and gray coloring.

@@ -1,0 +1,1 @@
+Create the 3D object of a heart-shaped leaf using Python Blender code, featuring a symmetrical blade with two rounded lobes at the base forming a heart outline, a pointed tip at the opposite end, a central midrib crease, and slight surface curvature with subtle vein lines.

@@ -1,0 +1,26 @@
+# Inference config for Gemini 2.5 Pro on the 3DProBench eval set.
+# Pass to run_inference.py:  python run_inference.py --config config/gemini_2_5_pro.yaml
+
+# --- Auth ---
+api_key: ${GEMINI_API_KEY}  # set via env var (or replace this placeholder)
+
+# --- Model & generation ---
+model: gemini-2.5-pro
+temperature: 0.7
+thinking: medium                # off | low | medium | high | dynamic | <int token budget>
+max_output_tokens: 65536
+
+# --- Eval scope ---
+prompt_type: description
+instances: null
+
+# --- Runtime ---
+max_workers: 50
+overwrite: false
+output_dir: null                # null = results/<model>/
+
+# --- Rate limits & robustness ---
+rpm: 150                        # provider RPM cap (paid Tier 1 nominal)
+tpm: 2000000                    # provider TPM cap
+max_sweeps: 3                   # extra full passes after main run for any missing .py
+parse_retries: 3                # in-call resamples if response fails ast.parse

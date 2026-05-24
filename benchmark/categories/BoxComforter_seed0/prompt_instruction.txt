@@ -1,0 +1,1 @@
+Create the 3D object of a box-stitched comforter using Python Blender code. The object should feature a thick rectangular form with visible box stitch seam lines creating a grid of padded squares, colorful pastel patchwork fabric texture on the top and bottom surfaces, and a slight thickness with soft rounded edges along the perimeter.

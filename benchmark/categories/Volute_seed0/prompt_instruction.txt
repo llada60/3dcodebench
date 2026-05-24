@@ -1,0 +1,1 @@
+Create the 3D object of a textured volute shell using Python Blender code, featuring a rounded globular coiled form with a large inflated body whorl and low spire, with a procedural wavy brown-and-cream radiating stripe pattern material across the shell surface and subtle surface undulations.

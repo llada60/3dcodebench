@@ -1,0 +1,34 @@
+Your previous Blender 5.0 Python script for the task below FAILED to produce a valid render. Read the error carefully and output a corrected, complete script.
+
+# Original task
+
+{original_task_block}
+
+# Your previous code
+
+```python
+{prev_code}
+```
+
+# Execution result
+
+- status: {status}
+- meshes produced: {n_meshes}
+- views rendered: {n_views_rendered}/4
+- attempt: {attempt_num} of {max_attempts}
+
+# Error / diagnostic output (from Blender stderr / runtime)
+
+{error_text}
+
+# Your task
+
+Fix the bug and output the COMPLETE corrected Python script. Do NOT output a diff, patch, or explanation. The same hard format constraints from the system prompt still apply: pure Python source only, no markdown fences, no prose before or after the code. The first character of your response must be the first character of valid Python.
+
+Common failure modes to consider, depending on the error:
+- `ERR_EXEC` (Python raised during script execution): a Blender 5.0 API mismatch, a missing import, a wrong arg name, or a runtime exception in your geometry code. Read the traceback line that mentions YOUR script.
+- `ERR_NO_MESH` (script ran clean but no MESH object remains): you may have created only curves / empties / lights, deleted everything, or forgot to convert curves to mesh. Make sure at least one `bpy.types.Object` of type `'MESH'` exists when the script ends.
+- `ERR_RENDER`: scene is built but cameras / view setup blew up — usually safe to ignore, but check for NaN coordinates or infinite-extent geometry.
+- `ERR_TIMEOUT`: your script is too slow (too many subdivisions, runaway loops, very heavy boolean ops). Reduce density or break up large operations.
+
+Do not just try the same thing again — change the approach for whatever the error indicates.

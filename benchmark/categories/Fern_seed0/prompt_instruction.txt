@@ -1,0 +1,1 @@
+Create the 3D object of a fern plant using Python Blender code, featuring multiple curved fronds radiating from a central base, each frond composed of a central stem with regularly spaced pinnate leaflets arranged alternately along its length, with the fronds arching outward and slightly downward.

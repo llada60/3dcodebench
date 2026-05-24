@@ -1,0 +1,1 @@
+Create the 3D object of a textured scallop shell using Python Blender code, featuring two rounded fan-shaped valve halves connected at a hinge and partially open, with concentric growth ring patterns rendered in brown-and-cream tones on the convex outer surfaces and a darker shaded interior.

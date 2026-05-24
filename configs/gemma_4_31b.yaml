@@ -1,0 +1,20 @@
+# Gemma 4 31B (Dense, instruction-tuned) via Google AI Studio (Gemini API endpoint)
+api_key: ${GEMINI_API_KEY}  # set via env var (or replace this placeholder)
+
+provider: gemini
+model: gemma-4-31b-it
+temperature: 0.7
+thinking: high                          # only "high" is accepted by Gemma 4
+max_output_tokens: 16384
+
+prompt_type: description
+instances: null
+
+max_workers: 50
+overwrite: false
+output_dir: null
+
+rpm: 1000
+tpm: 2000000
+max_sweeps: 3
+parse_retries: 3

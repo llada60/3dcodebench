@@ -1,0 +1,1 @@
+Create the 3D object of a large widescreen flat-panel television (TV) using Python Blender code. The object should feature a thin wide-format display panel with a slim metallic bezel, two T-shaped pedestal feet at the base, a dark bottom strip, and an emissive screen material to simulate a lit display surface.

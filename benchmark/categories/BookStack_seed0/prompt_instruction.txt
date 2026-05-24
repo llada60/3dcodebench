@@ -1,0 +1,1 @@
+Create the 3D object of a horizontal stack of books piled on top of each other using Python Blender code. The object should feature several closed book volumes of differing dimensions stacked with slight rotational offsets around the vertical axis, each book having a rectangular cover, a spine, and page-edge geometry.

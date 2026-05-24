@@ -1,0 +1,1 @@
+Create the 3D object of a wide hemispherical plant pot using Python Blender code. The object should feature a smooth rounded bowl form with a wide open top rim that is wider than the base, a hollow interior, and a flat circular base.

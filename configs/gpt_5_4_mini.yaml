@@ -1,0 +1,25 @@
+# Inference config for GPT-5.4 mini on the 3DProBench eval set.
+# Pass to run_inference.py:  python run_inference.py --config config/gpt_5_4_mini.yaml
+
+provider: openai
+api_key: ${GEMINI_API_KEY}  # set via env var (or replace this placeholder)
+
+model: gpt-5.4-mini
+# GPT-5.x reasoning models accept only temperature=1 (default); the adapter
+# omits the param entirely. This 1.0 is documentation.
+temperature: 1.0
+thinking: medium                # mapped to reasoning_effort. GPT-5.4/5.5 reject
+                                # 'minimal' (gpt-5 only); adapter remaps minimal->low.
+max_output_tokens: 65536
+
+prompt_type: description
+instances: null
+
+# Tier on this key: 5000 RPM, 2M TPM for mini/nano. Real run on this model
+# uses ~38K reasoning + 2.5K visible per call (~250s/call), so even at high
+# concurrency we use a fraction of TPM. Push workers high.
+max_workers: 32
+rpm: 3000
+tpm: 1800000
+overwrite: false
+output_dir: null

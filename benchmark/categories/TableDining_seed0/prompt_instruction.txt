@@ -1,0 +1,1 @@
+Create the 3D object of a dining table using Python Blender code, featuring a square tabletop mounted on a sled-style base frame composed of two inverted-U-shaped leg structures connected by horizontal crossbars, with a flat lower shelf panel spanning the base.

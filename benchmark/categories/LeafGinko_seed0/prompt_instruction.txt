@@ -1,0 +1,1 @@
+Create the 3D object of a ginkgo leaf using Python Blender code. The object should feature a fan-shaped blade that spreads outward from the stem, a wavy or scalloped outer margin, a central notch splitting the blade into two lobes, a long thin petiole stem at the base, and a gently curved three-dimensional surface with radiating vein-like topology.

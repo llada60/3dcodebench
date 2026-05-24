@@ -1,0 +1,1 @@
+Create the 3D object of a wall-mounted hook rack using Python Blender code, featuring a flat rectangular backplate panel framed by a dark border strip, with curved hook supports extending downward from the base to serve as hanging hooks.

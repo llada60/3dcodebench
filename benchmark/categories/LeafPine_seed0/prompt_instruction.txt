@@ -1,0 +1,1 @@
+Create the 3D object of a pine needle branch using Python Blender code. The object should feature a short brown central twig with numerous thin, elongated green needles radiating outward in bundled clusters along the branch length, each needle being a narrow cylindrical or flat strip, with the overall arrangement creating a natural coniferous spray appearance.

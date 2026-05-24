@@ -1,0 +1,1 @@
+Create the 3D object of a flat blanket using Python Blender code. The object should feature a thin rectangular flat mesh with slight surface undulation to simulate fabric drape, and a colorful pastel animal-print pattern texture mapped onto both faces of the cloth geometry.

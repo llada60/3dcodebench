@@ -1,0 +1,1 @@
+Create the 3D object of a built-in kitchen dishwasher using Python Blender code. The object should feature a dark wood-textured rectangular body, a matte blue-purple top panel, a horizontal bar handle, and realistic material properties including wood grain texture on the front door panel.

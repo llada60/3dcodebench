@@ -1,0 +1,1 @@
+Create the 3D object of a large natural boulder using Python Blender code. The object should feature a broad, irregularly shaped rock with a rough granular surface covered in fine pitting and erosion detail, a flat-topped low-profile silhouette, and warm reddish-brown earth-toned coloring resembling weathered sandstone.

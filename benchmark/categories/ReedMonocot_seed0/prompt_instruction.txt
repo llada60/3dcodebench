@@ -1,0 +1,1 @@
+Create the 3D object of a reed stem using Python Blender code, featuring a tall, thin central stalk with narrow, pointed leaves emerging at intervals along its length, each leaf arching gently outward and downward, with a muted green material.

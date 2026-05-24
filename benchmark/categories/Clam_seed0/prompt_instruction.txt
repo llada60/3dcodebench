@@ -1,0 +1,1 @@
+Create the 3D object of a textured clam shell using Python Blender code, featuring two hinged oval valve halves partially opened with concentric growth ring patterns on the outer surfaces rendered in brown-and-cream tones, a darker shaded interior, and smooth curved edges tapering toward the hinge.

@@ -1,0 +1,1 @@
+To create the 3D object of a door casing using python blender code, one would model three rectangular box segments — two vertical side pieces and one horizontal head piece — joined at the top corners, subtract the interior door opening, and apply a flat white diffuse material to represent a painted wood or drywall finish.

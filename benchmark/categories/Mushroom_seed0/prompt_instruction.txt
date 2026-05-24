@@ -1,0 +1,1 @@
+Create the 3D object of a mushroom cluster using Python Blender code, featuring a dominant mushroom with a wide irregular cap and a rough-surfaced cylindrical stem, accompanied by one or two smaller mushrooms at different heights and angles, all connected at the base.

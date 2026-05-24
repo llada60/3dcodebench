@@ -1,0 +1,28 @@
+# Inference config for Gemini 3.5 Flash on the 3DCodeBench eval set.
+# Pass to run_inference.py:  python run_inference.py --config config/gemini_3_5_flash.yaml
+
+# --- Auth ---
+# Either paste the key here, or leave it null and export GEMINI_API_KEY in your shell.
+api_key: ${GEMINI_API_KEY}  # set via env var (or replace this placeholder)
+
+# --- Model & generation ---
+model: gemini-3.5-flash         # gemini-3-flash-preview | gemini-3-pro-preview | gemini-3.1-pro-preview | gemini-3.1-flash-lite-preview | gemini-3.5-flash | gemini-2.5-flash | gemini-2.5-pro
+temperature: 0.7
+thinking: medium                # off | low | medium | high | dynamic | <int token budget>
+max_output_tokens: 65536
+
+# --- Eval scope ---
+prompt_type: description        # description | instruction
+# instances: null = all 212. Set a list to limit, e.g. [BeverageFridge_seed0, ArmChair_seed0]
+instances: null
+
+# --- Runtime ---
+max_workers: 50
+overwrite: false                # true = re-run instances whose output exists
+output_dir: null                # null = results/<model>/
+
+# --- Rate limits & robustness ---
+rpm: 1000                       # provider RPM cap
+tpm: 2000000                    # provider TPM cap
+max_sweeps: 3                   # extra full passes after main run for any missing .py
+parse_retries: 3                # in-call resamples if response fails ast.parse

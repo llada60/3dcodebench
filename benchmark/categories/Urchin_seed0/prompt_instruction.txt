@@ -1,0 +1,1 @@
+Create the 3D object of a sea urchin using Python Blender code. The object should feature a spherical central body with hundreds of long, thin, sharp spines radiating outward uniformly in all directions, with reddish-purple coloring that is darker at the base and lighter toward the spine tips.

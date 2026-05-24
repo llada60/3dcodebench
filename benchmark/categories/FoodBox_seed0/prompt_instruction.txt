@@ -1,0 +1,1 @@
+Create the 3D object of a rectangular food packaging box using Python Blender code. The object should feature a box with six flat faces, sharp edges, proportions close to a cube, and colorful printed surface patterns applied to each visible face.

@@ -1,0 +1,1 @@
+To create the 3D object of a classical pillar using python blender code, one would model a cylinder with fluted longitudinal groove cuts along the shaft, sculpt or displace a capital ornament at the top, add a stepped base block, and apply a white stone material with a displacement texture map to simulate surface erosion and weathering.

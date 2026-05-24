@@ -1,0 +1,1 @@
+Create the 3D object of a maple leaf using Python Blender code. The object should feature a palmate blade with five to seven pointed lobes radiating outward, serrated or toothed edges along each lobe, deep sinuses between the lobes, a long petiole stem at the base, and a natural three-dimensional surface with gentle undulations and raised veins extending into each lobe.

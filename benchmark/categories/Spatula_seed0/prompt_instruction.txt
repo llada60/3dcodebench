@@ -1,0 +1,1 @@
+Create the 3D object of a cooking spatula using Python Blender code. The object should feature a long thin handle that transitions into a wide flat rectangular head with a blunt straight edge, with the head slightly angled relative to the handle axis.

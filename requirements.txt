@@ -1,0 +1,26 @@
+# Provider SDKs (pick at least the one matching your config)
+google-genai>=2.0
+anthropic>=0.40
+openai>=1.50
+
+# Config + I/O
+PyYAML>=6.0
+Pillow>=10.0
+numpy>=1.26
+tqdm>=4.66
+
+# Geometry + scoring (metrics/shape_*)
+trimesh>=4.0
+scipy>=1.11
+scikit-image>=0.22
+
+# Optional — required only by specific metrics
+# torch + transformers for SigLIP-2 / DINOv3
+# torch>=2.1
+# transformers>=4.40
+# open_clip_torch>=2.24
+# Uni3D weights are loaded externally; see metrics/shape_uni3d.py
+
+# NOTE: Blender 5.0 must be installed separately (https://www.blender.org/download/),
+# and exported as BLENDER=/path/to/blender. The factories under benchmark/categories
+# run inside Blender's bundled Python and do not need anything installed here.

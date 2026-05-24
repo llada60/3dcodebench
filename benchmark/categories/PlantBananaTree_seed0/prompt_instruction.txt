@@ -1,0 +1,1 @@
+Create the 3D object of a young banana plant using Python Blender code. The object should feature a single large elongated oval leaf with a prominent midrib and fine parallel venation on the green upper surface, supported by a long slender curved petiole stem.

@@ -1,0 +1,32 @@
+# Inference config for Claude Opus 4.7 on the 3DProBench eval set.
+# Pass to run_inference.py:  python run_inference.py --config config/claude_opus_4_7.yaml
+
+# --- Auth ---
+provider: anthropic
+api_key: ${GEMINI_API_KEY}  # set via env var (or replace this placeholder)
+
+# --- Model & generation ---
+model: claude-opus-4-7
+# Opus 4.7 removed sampling parameters; the adapter skips temperature
+# automatically when the model id contains "opus-4-7".
+# Opus 4.7 also ONLY supports `thinking={"type":"adaptive"}` — no
+# enabled+budget_tokens path. Adapter routes Opus to adaptive+effort.
+temperature: 1.0
+thinking: medium                # off | low | medium | high | max | xhigh
+                                # Mapped to thinking={adaptive} + output_config.effort.
+                                # Opus 4.7 supports an extra `xhigh` tier above max.
+max_output_tokens: 64000        # Opus 4.7 caps at 64K like Sonnet 4.6
+
+# --- Eval scope ---
+prompt_type: description
+instances: null
+
+# --- Runtime ---
+# Same Anthropic-tier limits as haiku/sonnet (1000 RPM, 450K ITPM, 90K OTPM).
+# Opus is the slowest tier per call (~3-5x Sonnet per token), so keep workers
+# moderate — output TPM is the binding cap with adaptive medium thinking.
+max_workers: 10
+rpm: 600
+tpm: 400000
+overwrite: false
+output_dir: null

@@ -1,0 +1,31 @@
+# Inference config for Claude Sonnet 4.6 on the 3DProBench eval set.
+# Pass to run_inference.py:  python run_inference.py --config config/claude_sonnet_4_6.yaml
+
+# --- Auth ---
+provider: anthropic
+api_key: ${GEMINI_API_KEY}  # set via env var (or replace this placeholder)
+
+# --- Model & generation ---
+model: claude-sonnet-4-6
+# When thinking is enabled, Anthropic only accepts temperature=1; the adapter
+# drops the param so this is mostly documentation.
+temperature: 1.0
+thinking: medium                # off | low | medium | high
+                                # Mapped to thinking={adaptive} + output_config.effort.
+                                # Sonnet 4.6 also accepts effort=max (deeper than high).
+max_output_tokens: 64000        # sonnet-4-6 caps at 64K output
+
+# --- Eval scope ---
+prompt_type: description
+instances: null
+
+# --- Runtime ---
+# Same tier as haiku key (1000 RPM, 450K ITPM, 90K OTPM). Real data:
+# ~150s/call, ~15K avg total tokens. With w=16 we expect ~6 calls/min,
+# ~90K output/min — right at the OTPM ceiling, so the limiter handles
+# any burstiness via 429-retry rather than us under-utilising.
+max_workers: 16
+rpm: 800
+tpm: 400000
+overwrite: false
+output_dir: null

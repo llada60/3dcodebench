@@ -1,0 +1,27 @@
+# Eval outputs (never committed)
+/results/
+/logs/
+/judgments/
+
+# Renders / GLBs that the runner produces on the fly
+*.glb
+*.png
+*.jpg
+*.jpeg
+!**/figures/*.png
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Env + IDE
+.env
+.envrc
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db

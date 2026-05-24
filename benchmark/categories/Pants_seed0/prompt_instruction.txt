@@ -1,0 +1,1 @@
+Create the 3D object of a pair of shorts/pants (laid flat) using Python Blender code. The object should feature a flat cloth geometry shaped like a pair of shorts with two leg openings forming an inverted-U cutout at the base, a light pink fabric texture with subtle surface deformation, and a dark patterned waistband trim along the hem edges.

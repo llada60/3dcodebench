@@ -1,0 +1,1 @@
+Create the 3D object of a countertop using Python Blender code, featuring a flat horizontal surface composed of multiple intersecting slab segments forming an L-shaped or cross-shaped layout with angular joints and uniform thickness.

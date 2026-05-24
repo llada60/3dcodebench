@@ -1,0 +1,1 @@
+Create the 3D object of a standalone kitchen faucet on a mounting plate using Python Blender code. The object should feature a curved gooseneck spout formed from a tubular profile that rises vertically and arcs over at the top, a small lever handle at the base, and a flat rectangular base plate from which the faucet extends.

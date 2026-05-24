@@ -1,0 +1,1 @@
+Create the 3D object of a broad ovate leaf using Python Blender code. The object should feature a wide, rounded elliptical blade with smooth edges tapering to a point at the tip, a thin petiole stem at the base, a subtle raised central vein, and a gentle three-dimensional curvature across the leaf surface giving it a natural slightly cupped shape.

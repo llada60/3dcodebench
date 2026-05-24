@@ -1,0 +1,1 @@
+Create the 3D object of a single fan palm leaf using Python Blender code. The object should feature a palmate blade with multiple narrow radiating segments of varying length spreading from a central junction point, attached to a thin upright petiole stem.

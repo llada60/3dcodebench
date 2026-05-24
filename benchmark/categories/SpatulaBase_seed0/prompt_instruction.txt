@@ -1,0 +1,1 @@
+Create the 3D object of a kitchen spatula using Python Blender code, featuring a flat rectangular blade connected to a long narrow handle with a circular hole at the top end for hanging.

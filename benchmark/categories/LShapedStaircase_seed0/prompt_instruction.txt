@@ -1,0 +1,1 @@
+To create the 3D object of an L-shaped staircase using python blender code, one would model two straight stair flights joined at a 90-degree landing platform, extrude glass panel railing geometry along each open edge, and apply a dark metal shader to the structural frame with a semi-transparent brownish-grey shader for the glass balustrade panels.

@@ -1,0 +1,1 @@
+Create the 3D object of an agave succulent plant using Python Blender code, featuring a rosette arrangement of thick, fleshy, pointed leaves that emerge from a central base, each leaf having a broad base tapering to a pointed tip with a slight upward curve, and a matte green material with subtle tonal variation.

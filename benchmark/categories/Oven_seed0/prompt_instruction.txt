@@ -1,0 +1,1 @@
+Create the 3D object of a freestanding gas kitchen oven range using Python Blender code. The object should include a gray metallic textured body, a black glass cooktop surface, four cast-iron gas burner grate assemblies, a back panel with rotary control knobs and a clock display, and a lower oven door with a horizontal handle bar.

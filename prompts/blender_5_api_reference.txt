@@ -1,0 +1,267 @@
+# Blender 5.0 Python API reference (verified against Blender 5.0.0 and 4.4.0)
+
+Every claim below was tested against an actual `blender-5.0.0` install (and most against `blender-4.4.0` as well, to distinguish "removed before 5.0" from "removed in 5.0"). Use this to avoid the API breaks LLMs commonly generate for procedural-mesh tasks.
+
+# 0. Quick "removed exactly in 5.0" / "deprecated in 5.0" cheat sheet
+
+These are the items the cross-version differential found. Everything in Section 1 below was already gone in 4.4 (or before) but is included here because LLMs commonly emit it anyway.
+
+## 0.1 Removed in 5.0 (worked in 4.4)
+- `Scene.node_tree` → use `Scene.compositing_node_group`
+- `Scene.alembic_export` (no replacement; the corresponding import was never present)
+- `Action.fcurves`, `Action.groups`, `Action.id_root` → use the new `Action.layers` channelbag API
+- `Image.bindcode` → use `gpu.texture.from_image(image)` (returns `gpu.types.GPUTexture`)
+- `ShaderNodeTexPointDensity` → no direct replacement (precompute density in Python; `GeometryNodeSampleNearestSurface`)
+- `CompositorNodeGamma` → use `ShaderNodeGamma` (many compositor nodes were unified with their shader-node counterparts)
+- `BLENDER_EEVEE_NEXT` engine identifier → `BLENDER_EEVEE`
+- The whole `bgl` module (legacy OpenGL) — fully removed; use `gpu` module instead.
+
+## 0.2 Deprecated in 5.0 (still works, removed in 6.0)
+- `Material.use_nodes` — emits `DeprecationWarning`. New materials default to `use_nodes = True` already, so DO NOT toggle it. Just set up `material.node_tree.nodes` directly.
+- `Scene.use_nodes` — emits `DeprecationWarning`. Always returns `True`; setting has no effect. To enable compositing, use `scene.compositing_node_group` instead.
+
+## 0.3 New in 5.0 (won't work on 4.x)
+- Engine: `'BLENDER_EEVEE'` (replaces `'BLENDER_EEVEE_NEXT'`)
+- `Scene.compositing_node_group` (replaces `Scene.node_tree`)
+- GeoNodes: `GeometryNodeUVTangent`, `GeometryNodeImportVDB` (volume), `GeometryNodeMenuSwitch`, `GeometryNodeRepeatInput`/`RepeatOutput`
+- Shader: `ShaderNodeRadialTiling`
+- `bpy.data.annotations` / `bpy.types.Annotation` (added — does NOT replace `bpy.data.grease_pencils` / `bpy.types.GreasePencil`; both names exist)
+- `Material.surface_render_method` (replaces removed `Material.shadow_method`)
+- `gpu.texture.from_image(image)` returning `gpu.types.GPUTexture` (replaces `Image.bindcode`)
+
+# 1. Removed / changed APIs — do NOT use these in 5.0
+(Many of these were already removed in 4.x; included here because LLMs frequently emit them anyway.)
+
+## 1.1 Removed methods on `Mesh`
+- `Mesh.calc_normals()` — removed. Use `mesh.update()` instead. Normals are computed automatically.
+
+## 1.2 Removed properties on `Mesh`
+- `Mesh.use_auto_smooth` — removed. To enable smooth shading, call `bpy.ops.object.shade_smooth()` (per-face smoothing) or `bpy.ops.object.shade_auto_smooth()` (angle-based).
+
+## 1.3 Removed properties on `Material`
+- `Material.shadow_method` — removed. The replacement is `Material.surface_render_method` (enum: `'DITHERED'`, `'BLENDED'`).
+- `Material.use_nodes` — DEPRECATED (still works in 5.0, removed in 6.0). New materials default to `use_nodes = True` already; do not toggle it.
+
+## 1.4 Removed shader nodes
+- `ShaderNodeTexMusgrave` — removed. Use `ShaderNodeTexNoise` (its `noise_dimensions` enum has the modes you wanted).
+- `ShaderNodeTexPointDensity` — removed. No direct replacement; pre-compute density in Python and use vertex attributes, or `GeometryNodeSampleNearestSurface`.
+
+## 1.5 Renamed shader-node socket
+- `ShaderNodeTexNoise` output `"Fac"` is now named `"Factor"`. Address it by index (`node.outputs[0]`) or by the new name `"Factor"`.
+
+## 1.6 Removed node-interface socket type
+- `NodeSocketVirtual` — removed. Use `NodeSocketFloat` (or another concrete type) anywhere a virtual socket was used.
+
+## 1.7 EEVEE engine identifier
+- 5.0 uses `'BLENDER_EEVEE'` as the engine name. The 4.x value `'BLENDER_EEVEE_NEXT'` no longer exists. Set `bpy.context.scene.render.engine = 'BLENDER_EEVEE'`.
+
+## 1.8 Removed property accessors via dict-syntax
+- `bpy.context.scene['cycles']`, `bpy.context.scene['eevee']`, etc. — `bpy.props`-defined property groups are no longer accessible via subscript; use attribute access (`bpy.context.scene.cycles`).
+
+## 1.9 Removed `Image.bindcode`
+- Use the GPU module: `gpu.texture.from_image(image)` returning a `gpu.types.GPUTexture`. Rare in mesh-generation scripts.
+
+## 1.10 Legacy Action API removed
+- `Action.fcurves`, `Action.groups`, `Action.id_root` — removed. New API: `Action.layers` (channelbag-based). Rare in mesh-generation scripts.
+
+## 1.11 Bone select properties moved to EditBone
+- `Bone.select`, `Bone.select_head`, `Bone.select_tail` — removed on `bpy.types.Bone`. The same names exist on `bpy.types.EditBone`; switch into edit-mode armature first if you need them. Rare in mesh-generation scripts.
+
+# 2. Behaviour changes (no API rename, but old code breaks)
+
+## 2.1 `BMVert.select_set()` rejects `numpy.bool_`
+A numpy comparison returns `numpy.bool_`, not Python `bool`, and `BMVert.select_set` raises `TypeError: 'numpy.bool' object cannot be interpreted as an integer`. Wrap with `bool(...)`:
+```
+v.select_set(bool(np.abs(v.co[-1]) < 1e-3))
+```
+
+## 2.2 `mathutils.Vector += numpy.ndarray` raises `AttributeError`
+`v += np_array` raises `AttributeError: Vector addition: (Vector += numpy.ndarray) invalid type for this operation`. Convert first:
+```
+v = mathutils.Vector(v + np_array.tolist())   # or component-wise: v.x += float(np_array[0])
+```
+(Note: `obj.location = np_array` DOES work — Blender accepts ndarrays for property assignment, just not for the `+=` operator on `Vector`.)
+
+## 2.3 3D cursor affects `primitive_*_add()` placement
+A primitive added without an explicit `location=` is placed at the 3D cursor position, even in `--background` mode. Always pass `location=(0, 0, 0)` AND reset the cursor in your scene-clearing helper:
+```
+bpy.context.scene.cursor.location = (0, 0, 0)
+bpy.ops.mesh.primitive_uv_sphere_add(segments=32, location=(0, 0, 0))
+```
+
+## 2.4 `bpy.ops.mesh.triangulate` operator does not exist
+`AttributeError: Calling operator "bpy.ops.mesh.triangulate" error, could not be found`. Use bmesh:
+```
+bm = bmesh.new(); bm.from_mesh(obj.data)
+bmesh.ops.triangulate(bm, faces=bm.faces[:])
+bm.to_mesh(obj.data); bm.free(); obj.data.update()
+```
+General rule: `bpy.ops.mesh.*` operators usually need an edit-mode context that does not exist in `--background` mode. Prefer `bmesh.ops.*` for ALL mesh edits in headless scripts. Equivalents:
+- `bmesh.ops.triangulate`, `bmesh.ops.dissolve_degenerate`, `bmesh.ops.remove_doubles`, `bmesh.ops.recalc_face_normals`.
+
+## 2.5 `SUBSURF` modifier with `levels=0` cannot be applied
+`bpy.ops.object.modifier_apply(...)` with a SUBSURF modifier whose `.levels = 0` raises `RuntimeError: Modifier is disabled, skipping apply`. Guard with `if levels > 0`.
+
+## 2.6 GeoNodes input order — Geometry input MUST be first
+A GeoNodes group whose first interface item is NOT a Geometry input produces no mesh; the modifier's apply call raises `RuntimeError: Evaluated geometry from modifier does not contain a mesh`. After creating the input socket, move it to index 0:
+```
+in_sock = ng.interface.new_socket('Geometry', in_out='INPUT', socket_type='NodeSocketGeometry')
+ng.interface.move(in_sock, 0)
+```
+
+## 2.7 `GeometryNodeCaptureAttribute` starts with NO capture channels
+A freshly-created `CaptureAttribute` node has 0 entries in `.capture_items`. Without an explicit `.capture_items.new(data_type, name)` call the node has only virtual sockets and silently captures nothing — every output reads back as 0. (This is the #1 cause of "flat geometry" bugs: Z=0 everywhere, radius=0.)
+```
+cap = ng.nodes.new('GeometryNodeCaptureAttribute')
+cap.capture_items.new('FLOAT', 'Value')           # for scalar
+cap.capture_items.new('FLOAT_VECTOR', 'Vector')   # for vector
+```
+
+## 2.8 `GeometryNodeCurveToMesh` gained a "Scale" input at index 2
+The new input shifted "Fill Caps" from `inputs[2]` to `inputs[3]`, and `SetCurveRadius` no longer affects the mesh thickness — only the curve. Without driving the new "Scale" input, all tubes render as flat ~2 m discs. Two correct patterns:
+- Fixed thickness: set the profile circle's radius directly via `circle.inputs['Radius'].default_value = R`.
+- Variable thickness: route the radius signal into `ctm.inputs['Scale']`.
+
+Always address GeoNodes inputs by name, never by positional index.
+
+## 2.9 `GeometryNodeResampleCurve` gained a "Mode" input at index 2
+"Count" shifted from `inputs[2]` to `inputs[3]`. Always: `resample.inputs['Count'].default_value = 32`.
+
+## 2.10 `GeometryNodeFilletCurve.mode` is now an input socket, not a Python attribute
+Setting `node.mode = 'POLY'` raises `AttributeError`. The mode is a `NodeSocketMenu` input. Valid values are exactly `'Poly'` and `'Bézier'` (note the **é with acute accent** — `'Bezier'` without the accent is REJECTED). Set via `node.inputs['Mode'].default_value = 'Bézier'`.
+
+## 2.11 `FunctionNodeRotateEuler.type` is read-only
+`node.type = 'EULER'` raises `AttributeError: ... attribute "type" ... is read-only`. The default 'EULER' is usually fine; if you need a different rotation, use `ShaderNodeVectorRotate` with `rotation_type='EULER_XYZ'` or compute the rotation in Python with `mathutils.Euler`.
+
+## 2.12 Boolean solver bugs on voxel-remeshed geometry
+Three confirmed bugs in 5.0 that produce no exception but silently destroy the mesh:
+- FLOAT UNION on certain seed configurations (verts can collapse 3629 → 249).
+- EXACT DIFFERENCE on voxel-remeshed meshes (60-70 % vertex loss, splits the mesh into hundreds of components).
+- FLOAT DIFFERENCE when the cutter is ≥ the target dimension (verts can collapse 976 → 183).
+
+Defensive recipe: prefer `mod.solver = 'FLOAT'` over `'EXACT'`; keep cutters ≤ ~85 % of the target dimension; check `len(target.data.vertices)` before and after the modifier apply, and revert if the post count fell to under half. Extract any vertex data you need BEFORE the boolean — never rely on post-boolean arrays.
+
+## 2.13 `FunctionNodeRandomValue` and `ShaderNodeTexVoronoi` hashing changed
+Same seeds / inputs produce different output values vs. 4.x. This is a behaviour change, not a bug. Accept the visual difference, or precompute the randomness in Python and pass it as a vertex attribute.
+
+## 2.14 `bpy.ops.object.modifier_apply()` cannot apply GeoNodes on CURVE objects
+Use depsgraph evaluation:
+```
+dg = bpy.context.evaluated_depsgraph_get()
+mesh = bpy.data.meshes.new_from_object(obj.evaluated_get(dg))
+new_obj = bpy.data.objects.new(obj.name + "_mesh", mesh)
+bpy.context.collection.objects.link(new_obj)
+new_obj.matrix_world = obj.matrix_world.copy()
+bpy.data.objects.remove(obj, do_unlink=True)
+```
+
+## 2.15 `Modifier[<id>_use_attribute]` IDProperty mapping is fragile
+Use explicit `GeometryNodeInputNamedAttribute` (read) and `GeometryNodeStoreNamedAttribute` (write) nodes inside the GeoNodes tree instead of the modifier's IDProperty hooks.
+
+# 3. Verified node names (use these; do NOT invent neighbours)
+
+The most common hallucinations LLMs produce on this task are plausible-sounding GeoNodes names that don't exist. Before emitting `ng.nodes.new('Name')`, confirm the name is in this list (or known to be in the official Blender 5.0 API). If you need a node not listed here, prefer constructing the geometry with `bmesh` directly.
+
+## Group I/O (use the EXACT names below — there is NO `GeometryNodeInputGeometry`)
+- `NodeGroupInput`
+- `NodeGroupOutput`
+
+## GeoNodes attribute / input nodes (these `Input*` names DO exist)
+- `GeometryNodeInputPosition`
+- `GeometryNodeInputNormal`
+- `GeometryNodeInputIndex`
+- `GeometryNodeInputID`
+- `GeometryNodeInputRadius`
+- `GeometryNodeInputNamedAttribute`         (named-attribute READ)
+- `GeometryNodeStoreNamedAttribute`         (named-attribute WRITE)
+- `GeometryNodeInputMeshVertexNeighbors`
+- `GeometryNodeInputSplineCyclic`
+- `GeometryNodeInputSplineResolution`
+- `GeometryNodeSplineParameter`             (NOT `GeometryNodeInputSplineParameter`)
+- `GeometryNodeSplineLength`
+- `GeometryNodeCurveLength`
+
+## GeoNodes mesh primitives (NO `Torus` — that one does not exist in GeoNodes)
+- `GeometryNodeMeshLine`
+- `GeometryNodeMeshGrid`
+- `GeometryNodeMeshCube`
+- `GeometryNodeMeshUVSphere`
+- `GeometryNodeMeshIcoSphere`
+- `GeometryNodeMeshCylinder`
+- `GeometryNodeMeshCone`
+- `GeometryNodeMeshCircle`
+(Want a torus? Build it from `bmesh` — `bmesh.ops.create_uvsphere` / sweeping a circle / etc.)
+
+## GeoNodes curve primitives (only the ones below exist)
+- `GeometryNodeCurvePrimitiveBezierSegment` (cubic Bezier; there is NO `QuadraticBezier`)
+- `GeometryNodeCurvePrimitiveCircle`
+- `GeometryNodeCurvePrimitiveLine`
+- `GeometryNodeCurvePrimitiveQuadrilateral`
+- `GeometryNodeCurveSpiral`                 (NOT `GeometryNodeCurvePrimitiveSpiral`)
+(There is NO `GeometryNodeCurvePrimitiveStar`. Build a star from a parametric loop and `GeometryNodeCurvePrimitiveLine` segments, or build it in `bmesh` directly.)
+
+## GeoNodes set / transform nodes
+- `GeometryNodeTransform`
+- `GeometryNodeSetPosition`
+- `GeometryNodeSetMaterial`
+- `GeometryNodeSetShadeSmooth`
+- `GeometryNodeSetCurveRadius`
+- `GeometryNodeSetCurveTilt`
+- `GeometryNodeSetSplineCyclic`
+- `GeometryNodeSetSplineResolution`
+
+## GeoNodes mesh ops / instancing
+- `GeometryNodeMeshBoolean`
+- `GeometryNodeJoinGeometry`
+- `GeometryNodeRealizeInstances`
+- `GeometryNodeInstanceOnPoints`
+- `GeometryNodeDistributePointsOnFaces`
+- `GeometryNodeDistributePointsInVolume`
+
+## GeoNodes converters
+- `GeometryNodeCurveToMesh`        (see 2.8)
+- `GeometryNodeMeshToCurve`
+- `GeometryNodeMeshToPoints`
+- `GeometryNodeResampleCurve`      (see 2.9)
+- `GeometryNodeFilletCurve`        (see 2.10)
+- `GeometryNodeCaptureAttribute`   (see 2.7)
+- `GeometryNodeUVUnwrap`
+- `GeometryNodeUVTangent`           (new in 5.0; MikkTSpace tangents)
+
+## GeoNodes flow-control
+- `GeometryNodeSwitch`
+- `GeometryNodeMenuSwitch`          (new in 5.0)
+- `GeometryNodeRepeatInput`         (new in 5.0; pair with RepeatOutput)
+- `GeometryNodeRepeatOutput`
+
+## Function (math/comparison) nodes
+- `FunctionNodeCompare`
+- `FunctionNodeBooleanMath`
+- `FunctionNodeFloatToInt`
+- `FunctionNodeRandomValue`
+- `FunctionNodeRotateEuler`         (see 2.11)
+
+## Standard shader nodes (live in a `bpy.types.NodeTree` of type `'ShaderNodeTree'`, not `'GeometryNodeTree'`)
+- `ShaderNodeBsdfPrincipled`
+- `ShaderNodeOutputMaterial`
+- `ShaderNodeTexNoise`              (see 1.5 — output "Factor")
+- `ShaderNodeTexVoronoi`            (see 2.13)
+- `ShaderNodeMixRGB`
+- `ShaderNodeValToRGB`              (color ramp)
+- `ShaderNodeMath`
+- `ShaderNodeVectorRotate`
+- `ShaderNodeRadialTiling`          (new in 5.0; SHADER not GeoNode)
+
+# 4. Headless safety checklist
+
+1. **Reset 3D cursor** in your scene-clearing helper: `bpy.context.scene.cursor.location = (0, 0, 0)`. Then pass `location=(0, 0, 0)` to every `primitive_*_add` call.
+2. **Set the active object explicitly** before any operator that needs one:
+   `bpy.context.view_layer.objects.active = obj; obj.select_set(True)`.
+3. **Do not call `bpy.ops.mesh.*`** for in-place mesh edits — use `bmesh.ops.*`.
+4. **Do not call `bpy.ops.wm.quit_blender()`** — return normally.
+5. **Convert numpy scalars to Python natives** (`float`, `int`, `bool`, `.tolist()`) before passing to bpy. Especially `numpy.bool_` → `bool(...)` for selection ops.
+6. **Address GeoNodes inputs by name**, never by positional index — input layouts can change between minor versions.
+7. **GeoNodes group's geometry input must be at interface index 0** — call `ng.interface.move(geom_in_socket, 0)` after creating sockets.
+8. **`GeometryNodeCaptureAttribute` requires `capture_items.new(...)`** — otherwise outputs are silently 0.
+9. **Boolean modifiers**: prefer `solver='FLOAT'`; keep cutters smaller than the target; vertex-count check before/after.
+10. **Render engine name**: `'CYCLES'` or `'BLENDER_EEVEE'` (NOT `'BLENDER_EEVEE_NEXT'`).
