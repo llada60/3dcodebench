@@ -1,1 +1,0 @@
-Create the 3D object of a cocktail bar table using Python Blender code, featuring a small circular tabletop, a tall single central pedestal column, and a wide flared rounded base, with the stem tapering smoothly from the base to the top.

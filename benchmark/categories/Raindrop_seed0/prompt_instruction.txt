@@ -1,1 +1,0 @@
-Create the 3D object of a raindrop using Python Blender code, featuring a smooth hemispherical dome shape with a flat circular base, a translucent blue-gray glassy appearance, and subtle specular reflections on the curved upper surface.

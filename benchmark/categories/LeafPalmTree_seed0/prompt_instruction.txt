@@ -1,1 +1,0 @@
-Create the 3D object of a single pinnate palm frond using Python Blender code. The object should feature a long arching rachis with rows of narrow pointed leaflets arranged along both sides in a feather-like pattern, tapering gradually from base to tip.

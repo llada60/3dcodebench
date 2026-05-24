@@ -1,1 +1,0 @@
-Create the 3D object of spatulas hanging on a wall-mounted hook rack using Python Blender code, featuring a flat rectangular backplate with a dark border frame, curved hook supports along the base, and kitchen spatulas suspended from the hooks by their handle holes.

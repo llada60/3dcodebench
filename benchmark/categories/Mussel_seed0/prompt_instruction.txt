@@ -1,1 +1,0 @@
-Create the 3D object of a textured mussel shell using Python Blender code, featuring two elongated teardrop-shaped valve halves hinged at a pointed end and partially open, with concentric growth ring patterns rendered in brown-and-cream tones on the outer surfaces, and a darker shaded interior cavity.

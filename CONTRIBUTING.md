@@ -66,13 +66,24 @@ and visualize the object from. Match the existing tone — see
 
 ### 3. Open the PR
 
-Title format: `Add category: <Name>`. Include:
-- A 200×200 render of the factory output (drop it inline as a screenshot).
+The data itself lives on HuggingFace at
+[YipengGao/3DCode](https://huggingface.co/datasets/YipengGao/3DCode), not in
+this repo. **You can submit a category via either path**:
+
+**Option A — GitHub PR (this repo).** Open a PR titled `Add category: <Name>`
+with the three files placed at `benchmark/categories/<Name>_seed0/`.
+Maintainers will mirror the accepted entry into the HF dataset. Include:
+- A 200×200 render of the factory output.
 - One-line rationale of why the object is interesting (e.g. *"requires
   combining boolean ops with a curve modifier"*).
 
-We'll review for: script runs cleanly, prompts are unambiguous, no overlap
-with an existing category.
+**Option B — HuggingFace PR.** Open a community PR directly on
+<https://huggingface.co/datasets/YipengGao/3DCode> adding your three files
+under `3DCodeBench/<Name>_seed0/`. Include the same render + rationale in
+the PR description.
+
+We'll review for: script runs cleanly in Blender 5.0, prompts are
+unambiguous, no overlap with an existing category.
 
 ## Adding a new task
 

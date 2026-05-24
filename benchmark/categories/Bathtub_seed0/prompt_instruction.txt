@@ -1,1 +1,0 @@
-Create the 3D object of a freestanding oval soaking bathtub using Python Blender code. The object should feature a smooth curved oval basin with a wide rim, a lightly textured hammered exterior surface, a glossy white interior bowl, and a flat oval base platform, all using white ceramic-like material shading.

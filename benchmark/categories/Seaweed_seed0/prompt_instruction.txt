@@ -1,1 +1,0 @@
-Create the 3D object of a seaweed plant using Python Blender code. The object should feature a dense upright cluster of broad, lobed, ruffled leaf blades with curved edges, growing from a narrow dark base and fanning outward in varied orientations.

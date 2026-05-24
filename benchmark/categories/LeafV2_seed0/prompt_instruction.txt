@@ -1,1 +1,0 @@
-Create the 3D object of a serrated leaf using Python Blender code. The object should feature an elongated ovate blade with pronounced sawtooth serrations along both edges, a pointed tip tapering from the widest section, a short petiole stem at the base, a raised central midrib, and a natural three-dimensional curvature across the leaf surface.

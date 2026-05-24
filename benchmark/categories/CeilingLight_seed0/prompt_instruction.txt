@@ -1,1 +1,0 @@
-Create the 3D object of a flush-mount ceiling light using Python Blender code, featuring a low-profile cylindrical disc body with a smooth white diffuser panel on the face, slightly rounded edges, and a subtle emissive glow from the underside that casts soft light downward.

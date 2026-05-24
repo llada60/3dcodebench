@@ -1,1 +1,0 @@
-Create the 3D object of a pine needle using Python Blender code, featuring a very thin elongated strand with a gentle smooth curvature along its length, tapering slightly at both ends, and a subtle brownish-tan coloring.

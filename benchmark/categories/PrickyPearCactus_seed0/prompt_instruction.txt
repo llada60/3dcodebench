@@ -1,1 +1,0 @@
-Create the 3D object of a prickly pear cactus (Opuntia) using Python Blender code. The object should feature multiple flat oval pad segments stacked and connected in a vertical arrangement, dense white spine clusters distributed across each pad surface, green diffuse material for the pad bodies, and procedural spine geometry.

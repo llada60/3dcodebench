@@ -1,1 +1,0 @@
-Create the 3D object of a flowering plant using Python Blender code, featuring several upright green stems each topped with a small flower bloom, broad green leaves attached at various heights along the stems, and a natural branching structure with slight organic curvature throughout.

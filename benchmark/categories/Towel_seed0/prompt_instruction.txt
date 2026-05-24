@@ -1,1 +1,0 @@
-Create the 3D object of a folded bath towel using Python Blender code. The object should feature a thick rectangular stack of cloth layers with densely wrinkled surface geometry simulating terry cloth texture, sky blue fabric material, visible folded layer edges on the sides with thin stripe accent details, and soft cloth shading.

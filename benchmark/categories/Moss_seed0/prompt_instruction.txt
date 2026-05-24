@@ -1,1 +1,0 @@
-Create the 3D object of a moss fragment using Python Blender code, featuring a small curved wedge or crescent-shaped piece with a rounded top profile, a flat bottom, and a muted olive-brown coloring with subtle organic surface variation.

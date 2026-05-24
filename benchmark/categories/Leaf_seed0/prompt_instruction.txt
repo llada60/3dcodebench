@@ -1,1 +1,0 @@
-Create the 3D object of a narrow elongated leaf using Python Blender code. The object should feature a thin, lance-shaped blade with a pointed tip at one end and a tapered base, a raised central midrib along the leaf's length, smooth lateral edges, and a gentle longitudinal curvature that gives the leaf a natural three-dimensional appearance.

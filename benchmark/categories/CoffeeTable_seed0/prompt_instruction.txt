@@ -1,1 +1,0 @@
-Create the 3D object of a low coffee table using Python Blender code, featuring a wide rectangular tabletop with rounded corners, a parallel bottom shelf of the same shape, and two short pedestal-style legs with flared disc bases positioned symmetrically between the two surfaces.

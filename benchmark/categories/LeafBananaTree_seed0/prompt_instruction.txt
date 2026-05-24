@@ -1,1 +1,0 @@
-Create the 3D object of a single banana tree leaf using Python Blender code. The object should feature a large broad elliptical blade with a slight lengthwise curl, a raised central midrib, fine parallel lateral veins across the bright green upper face, and a contrasting dark underside.

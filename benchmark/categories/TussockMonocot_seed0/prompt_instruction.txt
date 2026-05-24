@@ -1,1 +1,0 @@
-Create the 3D object of a tussock grass clump using Python Blender code, featuring a dense spherical mound of many thin, narrow grass blades radiating outward in all directions from a central base, each blade tapering to a fine point, with a vibrant green material.

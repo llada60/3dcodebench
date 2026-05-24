@@ -1,1 +1,0 @@
-Create the 3D object of a reed branch inflorescence using Python Blender code, featuring a dense, conical cluster of many small overlapping spikelets that form a compact plume shape, tapering toward the top, with a soft muted green material.

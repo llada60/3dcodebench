@@ -1,1 +1,0 @@
-Create the 3D object of a cylindrical drinking cup using Python Blender code. The object should feature a hollow cylinder with slightly tapering walls, a flat base, a smooth rim at the top, and no handle.

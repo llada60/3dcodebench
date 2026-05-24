@@ -1,36 +1,50 @@
-# Benchmark categories
+# Benchmark data
 
-212 procedural-3D categories drawn from the Infinigen object library, each
-distilled into three files:
+The 212 reference categories that the evaluation in `tasks/*` runs against
+**live on HuggingFace, not in this repository**:
+
+**https://huggingface.co/datasets/YipengGao/3DCode** (folder: `3DCodeBench/`)
+
+Each category is a `<Name>_seed0/` directory with three files:
 
 ```
-benchmark/categories/<Category>_seed0/
-├── <Category>_seed0.py          ← reference Blender Python factory (ground truth)
-├── prompt_description.txt       ← short text description used by text_to_3d
-└── prompt_instruction.txt       ← long structured spec used by text_to_3d (instruction variant)
+3DCodeBench/<Category>_seed0/
+├── <Category>_seed0.py          ← reference Blender 5.0 factory (ground truth)
+├── prompt_description.txt       ← short, single-paragraph caption
+└── prompt_instruction.txt       ← long, structured spec
 ```
 
-`<Category>_seed0.py` is a self-contained Blender 5.0 script that, when run
-headless (`blender --background --python …`), builds the reference mesh and
-exports a GLB. It is the ground truth for chamfer / SigLIP / Uni3D scoring.
+## Downloading
 
-The two `.txt` files are the human-readable inputs the LLM sees:
-- `prompt_description.txt` — one-paragraph caption (e.g. *"A 3D model of an
-  upholstered armchair rendered from an elevated three-quarter perspective…"*)
-- `prompt_instruction.txt` — multi-section structured spec covering geometry,
-  proportions, parts, and finish hints.
+The runner expects the data at `benchmark/categories/<Category>_seed0/...`.
+Two one-liners that produce that layout:
 
-For the image-to-3D task, the rendered reference image is produced on demand
-from the factory by `core/render.py`; it is not checked in to keep the repo
-lightweight.
+```bash
+# Option 1: huggingface-cli
+pip install -U "huggingface_hub[cli]"
+huggingface-cli download YipengGao/3DCode \
+    --repo-type dataset --include "3DCodeBench/*" \
+    --local-dir /tmp/3dcode_dl
+mkdir -p benchmark/categories
+mv /tmp/3dcode_dl/3DCodeBench/* benchmark/categories/
+
+# Option 2: git clone (uses git-lfs; only fetch the benchmark folder)
+GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/datasets/YipengGao/3DCode /tmp/3dcode_dl
+cd /tmp/3dcode_dl && git lfs pull --include "3DCodeBench/**" && cd -
+mkdir -p benchmark/categories
+cp -r /tmp/3dcode_dl/3DCodeBench/* benchmark/categories/
+```
+
+## Why on HuggingFace?
+
+The eval set + the broader **3DCodeData** corpus (244 factories &times; 3
+caption variants &times; multi-view renders) are versioned together over there.
+HF handles the size + the partial-download tooling better than git/GitHub LFS,
+and lets non-coders cite a stable dataset URL.
 
 ## Adding a new category
 
-See [`CONTRIBUTING.md`](../CONTRIBUTING.md) at the repo root for the full
-workflow. The short version:
-
-1. Drop a self-contained `<Name>_seed0.py` factory into a fresh subdirectory.
-2. Write a one-paragraph `prompt_description.txt`.
-3. (Optional) Write a structured `prompt_instruction.txt`.
-4. Verify it runs: `blender --background --python <Name>_seed0/<Name>_seed0.py`.
-5. Open a PR.
+The benchmark grows via PRs to the HuggingFace dataset, not this repo. See the
+[`CONTRIBUTING.md`](../CONTRIBUTING.md) at the repo root for the format and
+review checklist; once accepted, the maintainers move your category into the
+HF dataset.

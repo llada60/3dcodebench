@@ -1,1 +1,0 @@
-Create the 3D object of a coconut palm tree using Python Blender code. The object should feature a tall curved cylindrical trunk with a ringed ridged surface, a fibrous crown base, and multiple long pinnate fronds with fine leaflets radiating outward from the apex.

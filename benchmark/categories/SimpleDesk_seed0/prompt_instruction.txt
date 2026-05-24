@@ -1,1 +1,0 @@
-Create the 3D object of a simple desk using Python Blender code, featuring a wide rectangular tabletop on four angled legs connected by a lower shelf, with the top surface wider and longer than the lower shelf.

@@ -1,1 +1,0 @@
-Create the 3D object of a tall single-door cabinet using Python Blender code, featuring a narrow upright rectangular body with a single hinged front door panel and a small door handle.

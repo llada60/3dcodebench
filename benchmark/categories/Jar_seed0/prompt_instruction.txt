@@ -1,1 +1,0 @@
-Create the 3D object of a hexagonal storage jar using Python Blender code. The object should feature a tall prismatic body with a hexagonal cross-section, flat vertical facets, a flat circular lid, and a hollow interior visible through a semi-transparent body.

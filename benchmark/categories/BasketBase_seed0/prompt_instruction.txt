@@ -1,1 +1,0 @@
-Create the 3D object of a rectangular open-top storage basket using Python Blender code, featuring four trapezoidal sloped walls joined at the edges, a flat rectangular bottom, and symmetrically placed rectangular cutout handles on two opposite sides.

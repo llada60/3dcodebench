@@ -1,1 +1,0 @@
-Create the 3D object of a long kitchen cabinet using Python Blender code, featuring a wide rectangular body divided into multiple sections with a combination of open shelf compartments and closed door panels.

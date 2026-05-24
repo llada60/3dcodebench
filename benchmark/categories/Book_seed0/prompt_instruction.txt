@@ -1,1 +1,0 @@
-Create the 3D object of a single closed hardcover book lying flat using Python Blender code. The object should feature a rectangular cover with slightly rounded spine geometry, a thin page block between the top and bottom covers, and subtle page-edge detail along the open sides.

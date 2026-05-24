@@ -1,1 +1,0 @@
-Create the 3D object of a pinecone using Python Blender code, featuring an ovoid body composed of many overlapping, slightly open wooden scales arranged in a spiral phyllotactic pattern, with each scale having a rounded shield-like shape and a dark brown woody material with subtle surface texture.

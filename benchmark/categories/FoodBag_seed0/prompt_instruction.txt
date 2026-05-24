@@ -1,1 +1,0 @@
-Create the 3D object of a flexible food packaging bag using Python Blender code. The object should feature a flat pouch shape with a pinched top seal, slightly curved side panels, a bottom gusset fold, and a multi-panel surface with colorful printed patterns.

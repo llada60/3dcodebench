@@ -1,1 +1,0 @@
-Create the 3D object of a lichen growth using Python Blender code, featuring a cluster of thin ruffled leaf-like lobes radiating outward from a central base, with wavy curled edges, overlapping organic forms, and a muted sage green coloring that is lighter on top and darker underneath.

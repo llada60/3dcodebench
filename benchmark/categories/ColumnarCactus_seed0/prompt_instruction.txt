@@ -1,1 +1,0 @@
-Create the 3D object of a columnar cactus using Python Blender code. The object should include a tall ribbed cylindrical main trunk, one curved side arm growing from the lower portion, dense procedural white spine clusters along the ribbing, and a green diffuse material body with realistic spine geometry.

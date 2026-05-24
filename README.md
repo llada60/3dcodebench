@@ -54,7 +54,28 @@ export ANTHROPIC_API_KEY=...
 export OPENAI_API_KEY=...
 ```
 
-Outputs land at `results/<model>/<Category>_seed0/`:
+### Fetch the benchmark data
+
+The 212 reference categories live on HuggingFace, not in this repo. Pull
+them into `benchmark/categories/` (where every task expects to find them):
+
+```bash
+pip install -U "huggingface_hub[cli]"
+huggingface-cli download YipengGao/3DCode \
+    --repo-type dataset --include "3DCodeBench/*" \
+    --local-dir /tmp/3dcode_dl
+mkdir -p benchmark/categories
+mv /tmp/3dcode_dl/3DCodeBench/* benchmark/categories/
+```
+
+The broader **3DCodeData** corpus (244 factories &times; 3 caption variants &times;
+multi-view renders, ~864&nbsp;MB) is in the same dataset under
+`3DCodeData/` -- use `--include "3DCodeData/*"` instead. See
+[benchmark/README.md](benchmark/README.md) for details.
+
+### Outputs
+
+`results/<model>/<Category>_seed0/`:
 * `<Category>_seed0.py` -- generated Blender Python
 * `<Category>_seed0.glb` -- exported mesh
 * `<Category>_seed0.json` -- usage + cost + traceback (on failure)

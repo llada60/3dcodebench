@@ -1,1 +1,0 @@
-Create the 3D object of a shirt (laid flat) using Python Blender code. The object should feature a flat cloth geometry shaped like a T-shirt with a rectangular body and two sleeve arms extending outward, a light pink fabric texture, subtle cloth surface deformation, and a dark patterned edge trim along the hemlines.

@@ -1,1 +1,0 @@
-Create the 3D object of a floor-mounted porcelain toilet using Python Blender code. The object should include a round toilet bowl, an oval toilet seat and lid (lid raised), a rectangular cistern/tank with a flush lever, and a round floor-mounting base, all in white ceramic material with smooth glossy shading.

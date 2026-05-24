@@ -1,1 +1,0 @@
-Create the 3D object of a comforter/duvet using Python Blender code. The object should feature a large thin rectangular cloth form with a subtle soft thickness, a colorful pastel abstract fabric texture applied to the surface, and a folded border strip along one edge to simulate a realistic bedding comforter.

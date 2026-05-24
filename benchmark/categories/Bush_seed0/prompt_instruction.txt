@@ -1,1 +1,0 @@
-Create the 3D object of a bare deciduous bush using Python Blender code. The object should feature a network of thin woody stems growing upward and outward from a common base, repeatedly forking into progressively finer twigs to form a dense, rounded, leafless silhouette.

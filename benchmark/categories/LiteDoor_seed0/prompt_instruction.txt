@@ -1,1 +1,0 @@
-To create the 3D object of a lite door using python blender code, one would model a door slab with a semicircular arch, boolean-cut a single rectangular opening in the upper portion, optionally add a glass pane shader to the opening, and apply a dark matte paint material with slight specular highlights to the surrounding door panel.

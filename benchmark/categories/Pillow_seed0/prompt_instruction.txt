@@ -1,1 +1,0 @@
-Create the 3D object of a pillow using Python Blender code, featuring a soft rectangular cushion shape with rounded puffy edges, cloth-simulation-driven surface wrinkles and creases, and a slightly flattened bottom where it rests on a surface.

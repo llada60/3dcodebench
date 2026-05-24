@@ -1,1 +1,0 @@
-Create the 3D object of a leafy plant branch using Python Blender code. The object should feature a central woody stem with multiple lateral sub-branches and fine twigs, each bearing clusters of small ovate leaves distributed along the branch length.

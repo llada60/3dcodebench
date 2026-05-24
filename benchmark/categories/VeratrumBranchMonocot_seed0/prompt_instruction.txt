@@ -1,1 +1,0 @@
-Create the 3D object of a veratrum branch using Python Blender code, featuring a tall central stalk densely covered with overlapping pointed bracts in a spiral arrangement, with larger spreading leaves at the base and smaller tightly packed leaves toward the top, rendered in green and yellowish-green materials.

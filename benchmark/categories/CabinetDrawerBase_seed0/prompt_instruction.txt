@@ -1,1 +1,0 @@
-Create the 3D object of a cabinet drawer box using Python Blender code, featuring a rectangular open-top tray with a tall back panel, two side walls, a bottom plate, and varying depth-to-width proportions.

@@ -1,1 +1,0 @@
-Create the 3D base mesh object of a globular cactus using Python Blender code. The object should feature a smooth ovoid body with pronounced vertical lobed rib geometry wrapping around the surface, a twisted organic silhouette, and a plain white diffuse material to expose the underlying mesh structure without surface spines.

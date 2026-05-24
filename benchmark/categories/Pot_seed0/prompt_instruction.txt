@@ -1,1 +1,0 @@
-Create the 3D object of a cylindrical cooking pot using Python Blender code. The object should feature a wide hollow cylinder with thick straight walls, a flat circular base, an open top rim, and no handles or lid.

@@ -1,1 +1,0 @@
-Create the 3D object of a dining fork using Python Blender code. The object should feature a flat tapered handle, a curved neck section, and a tined head with four evenly spaced prongs that curve upward at the tips.

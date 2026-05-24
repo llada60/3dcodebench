@@ -1,1 +1,0 @@
-Create the 3D object of a single large daisy-like flower using Python Blender code. The object should feature a flat circular arrangement of elongated white petals with slightly wavy edges radiating outward, surrounding a raised dome-shaped central disk packed with small cylindrical florets.

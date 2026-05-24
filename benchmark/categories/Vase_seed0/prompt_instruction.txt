@@ -1,1 +1,0 @@
-Create the 3D object of a decorative fluted vase using Python Blender code. The object should feature a bulbous body with vertical ridges or flutes, a narrow neck that flares outward at the rim, and an ornamental scalloped base ring with detailed surface relief.

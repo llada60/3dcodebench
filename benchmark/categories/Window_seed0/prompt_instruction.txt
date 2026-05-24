@@ -1,1 +1,0 @@
-Create the 3D object of a rectangular window using Python Blender code. The object should feature a solid outer frame, one or more vertical panels each enclosed by inner frame rails, and horizontal slat blinds filling the glazing area with evenly spaced thin flat slats.

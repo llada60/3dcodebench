@@ -1,1 +1,0 @@
-Create the 3D object of a balloon letter word sign using Python Blender code. The object should feature a sequence of inflated, rounded tubular letter forms arranged in a horizontal row, each letter having a hollow bubbly cross-section with a dark outer shell and a contrasting inner surface visible through the open face of each character.

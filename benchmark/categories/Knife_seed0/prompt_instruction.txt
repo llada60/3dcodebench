@@ -1,1 +1,0 @@
-Create the 3D object of a table knife using Python Blender code. The object should feature a flat tapered blade that widens toward the handle and narrows to a point, with a smooth ergonomic handle that flows continuously from the blade base.

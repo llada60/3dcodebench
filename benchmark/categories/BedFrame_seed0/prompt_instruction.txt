@@ -1,1 +1,0 @@
-Create the 3D object of a wooden bed frame using Python Blender code, featuring a headboard and footboard with shaped panel details, tapered legs with decorative tips, side rails connecting the boards, and evenly spaced horizontal slats forming the mattress support platform.

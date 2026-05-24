@@ -1,1 +1,0 @@
-Create the 3D object of a rectangular kitchen sink with an integrated gooseneck faucet using Python Blender code. The object should feature a deep box-shaped basin with smooth rounded interior corners, a flat rim along the top edge, and a curved tubular faucet with a lever handle mounted on a raised platform at one end of the basin.

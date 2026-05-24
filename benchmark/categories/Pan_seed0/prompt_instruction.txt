@@ -1,1 +1,0 @@
-Create the 3D object of a frying pan using Python Blender code. The object should feature a wide shallow circular basin with gently flared sides, a flat base, and a long handle extending horizontally with a wooden-style grip section and a small hanging hole at the tip.

@@ -1,1 +1,0 @@
-Create the 3D object of a wheat plant using Python Blender code, featuring a tall thin stalk with long, narrow leaves arching outward at various angles and a dense grain ear at the top, rendered with a warm golden-brown material to represent mature wheat.

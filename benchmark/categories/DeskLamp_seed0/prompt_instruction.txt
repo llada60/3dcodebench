@@ -1,1 +1,0 @@
-Create the 3D object of a desk lamp using Python Blender code, featuring a tapered conical fabric lampshade with an open top and dark trim edge, a thin vertical stem connecting the shade to a decorative base consisting of a glossy dark truncated cone shape stacked on a flat circular foot plate.

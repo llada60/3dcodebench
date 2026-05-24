@@ -1,1 +1,0 @@
-Create the 3D object of a square countertop bathroom sink using Python Blender code. The object should feature a solid square block body with a deep square basin bowl, dark green marble-textured material with high reflectivity, and a gooseneck faucet with single-lever handle mounted at the back edge.

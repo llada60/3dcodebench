@@ -1,1 +1,0 @@
-Create the 3D object of a succulent plant using Python Blender code, featuring a compact rosette of thick fleshy overlapping leaves arranged in concentric spiral layers that curve inward, with the outer leaves larger and more open and the inner leaves tightly packed, topped with small protruding filaments at the center.

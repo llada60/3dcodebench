@@ -1,1 +1,0 @@
-Create the 3D object of a framed wall art canvas using Python Blender code. The object should feature a thin rectangular frame with a wood-like appearance surrounding a flat canvas panel whose face displays an abstract pattern of irregular blobs and patches of varied colors arranged over a solid background color.

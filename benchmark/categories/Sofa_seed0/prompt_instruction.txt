@@ -1,1 +1,0 @@
-Create the 3D object of a sectional sofa using Python Blender code, featuring an L-shaped or straight multi-seat configuration with individually modeled seat cushions, segmented backrest pillows of varying heights, solid block armrests, and a flat base platform.

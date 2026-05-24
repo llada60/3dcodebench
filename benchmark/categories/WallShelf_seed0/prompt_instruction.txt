@@ -1,1 +1,0 @@
-Create the 3D object of a wall shelf using Python Blender code. The object should feature a flat rectangular shelf board with two upward-curving arch or U-shaped bracket supports positioned symmetrically near the ends of the board, with the brackets having a rounded tubular cross-section and a contrasting color relative to the shelf board.

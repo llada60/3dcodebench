@@ -1,1 +1,0 @@
-Create the 3D object of a floor lamp using Python Blender code, featuring a tapered conical fabric lampshade with an open top, a tall slender cylindrical metallic pole in a silver-gray finish, a small circular tray or ring element mounted partway along the pole, and a flat round weighted base plate at the bottom.

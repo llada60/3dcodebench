@@ -1,1 +1,0 @@
-Create the 3D object of a wide shallow fruit bowl containing round fruits using Python Blender code. The object should feature a low-profile wide bowl with thick walls and a flat base, filled with a collection of smooth spherical fruit objects loosely arranged inside the cavity.

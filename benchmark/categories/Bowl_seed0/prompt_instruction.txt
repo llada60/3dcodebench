@@ -1,1 +1,0 @@
-Create the 3D object of a deep serving bowl using Python Blender code. The object should feature a wide curved rim, smooth rounded exterior walls transitioning to a flat circular base, and a hollow interior cavity.

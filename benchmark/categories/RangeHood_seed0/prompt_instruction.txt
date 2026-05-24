@@ -1,1 +1,0 @@
-Create the 3D object of a kitchen range hood using Python Blender code. The object should feature a wide trapezoidal or pyramidal lower canopy section that captures cooking fumes, transitioning upward into a narrower rectangular vertical chimney column, forming a characteristic L-shaped or stepped silhouette when viewed from the side.

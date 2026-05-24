@@ -1,1 +1,0 @@
-Create the 3D object of a compact beverage refrigerator (mini fridge) using Python Blender code. The object should feature a cube-shaped dark brown body, a dark glass top panel with a gold-tinted rim, a vertical metallic handle on the front door, and realistic material shading with reflective surfaces.

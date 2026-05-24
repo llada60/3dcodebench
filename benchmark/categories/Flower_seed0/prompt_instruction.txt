@@ -1,1 +1,0 @@
-Create the 3D object of a flower bloom using Python Blender code, featuring multiple concentric rings of broad petals that curve upward and outward to form a cup shape, with detailed petal geometry including natural curling and folding, a central cluster of stamens, and a base ring of sepals.

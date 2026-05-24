@@ -1,1 +1,0 @@
-Create the 3D object of a globular barrel cactus using Python Blender code. The object should feature a short oval/sphere-shaped body with vertical ribbing, dense clusters of outward-radiating white spines at regular areole positions, a green matte body material, and procedural spine geometry covering the entire surface.

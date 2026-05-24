@@ -1,1 +1,0 @@
-Create the 3D object of a full bed using Python Blender code, featuring a wooden frame with a curved headboard and footboard supported by tapered legs, a fitted mattress, draped blankets and sheets with soft cloth-like deformation, and pillows placed at the head of the bed.

@@ -1,1 +1,0 @@
-Create the 3D object of a round plate sitting on a wooden plate rack using Python Blender code, featuring a flat circular plate disc propped upright between vertical wooden dowel pegs mounted on a rectangular base frame.

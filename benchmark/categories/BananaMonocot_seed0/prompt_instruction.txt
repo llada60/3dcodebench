@@ -1,1 +1,0 @@
-Create the 3D object of a banana plant using Python Blender code, featuring a central stem with multiple large, wide, drooping leaves that have smooth edges and visible midribs, along with tightly furled young leaf shoots pointing upward, all rendered with a green material.

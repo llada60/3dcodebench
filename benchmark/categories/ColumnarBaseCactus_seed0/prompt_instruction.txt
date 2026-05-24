@@ -1,1 +1,0 @@
-Create the 3D base mesh object of a columnar cactus using Python Blender code. The object should feature a tall ribbed cylindrical trunk mesh with smooth lobed cross-section, a curved side arm branching from the lower trunk, and a flat white diffuse material to expose the underlying geometry without surface detail.

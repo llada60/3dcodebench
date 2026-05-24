@@ -1,1 +1,0 @@
-Create the 3D object of a reed ear seed head using Python Blender code, featuring a slender, elongated spike with small overlapping scale-like florets arranged alternately along a thin central rachis, tapering at both ends, with a pale muted green material.

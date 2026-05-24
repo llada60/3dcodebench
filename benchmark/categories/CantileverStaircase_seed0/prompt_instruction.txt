@@ -1,1 +1,0 @@
-To create the 3D object of a cantilever staircase using python blender code, one would model each step as an individual extruded plank anchored on one side only, array them at uniform vertical intervals, and add a railing system with thin square balusters and a rounded handrail profile.

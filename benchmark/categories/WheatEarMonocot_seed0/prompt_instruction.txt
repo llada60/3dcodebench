@@ -1,1 +1,0 @@
-Create the 3D object of a wheat ear head of grain using Python Blender code, featuring an elongated spike with tightly packed, overlapping scale-like spikelets arranged alternately along a central rachis, tapering to a point at the top, with a muted green-gold material.
