@@ -37,10 +37,12 @@ cp -r /tmp/3dcode_dl/3DCodeBench/* benchmark/categories/
 
 ## Why on HuggingFace?
 
-The eval set + the broader **3DCodeData** corpus (244 factories &times; 3
-caption variants &times; multi-view renders) are versioned together over there.
-HF handles the size + the partial-download tooling better than git/GitHub LFS,
-and lets non-coders cite a stable dataset URL.
+The eval set + the broader **3DCodeData** corpus (212 factories &times; 60 seeds
+= 12,720 instances, each with full-material + geometry-only scripts, 2 caption
+variants, multi-view renders, and textured + white-mode GLBs) are versioned
+together over there. HF handles the size + the partial-download tooling better
+than git/GitHub LFS, and lets non-coders cite a stable dataset URL. See
+[`../data_pipeline/`](../data_pipeline/) for how the corpus was curated.
 
 ## Adding a new category
 

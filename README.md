@@ -31,6 +31,7 @@ DINOv3), 3D-shape distance (Chamfer / Uni3D), and LLM-as-judge.
 ├── core/                   shared runner, provider abstraction, render/export
 ├── configs/                one YAML per model (API key from env)
 ├── prompts/                system + template prompts
+├── data_pipeline/          how 3DCodeData was curated: operators + key notes
 ├── CONTRIBUTING.md         how to add new categories
 └── LICENSE
 ```
@@ -70,10 +71,14 @@ mkdir -p benchmark/categories
 mv /tmp/3dcode_dl/3DCodeBench/* benchmark/categories/
 ```
 
-The broader **3DCodeData** corpus (244 factories &times; 3 caption variants &times;
-multi-view renders, ~864&nbsp;MB) is in the same dataset under
-`3DCodeData/` -- use `--include "3DCodeData/*"` instead. See
-[benchmark/README.md](benchmark/README.md) for details.
+The broader **3DCodeData** corpus (212 factories &times; 60 seeds =
+**12,720 instances**) is in the same dataset under `3DCodeData/` -- use
+`--include "3DCodeData/*"` instead. Each instance ships two self-contained
+Blender 5.0 scripts (full-material + geometry-only), 2 caption variants, 4
+multi-view WebP renders, and two exported meshes (a baked textured GLB + a
+white-mode geometry GLB for shape scoring). See
+[benchmark/README.md](benchmark/README.md) for details, and
+[data_pipeline/](data_pipeline/) for how it was curated.
 
 ### Outputs
 
@@ -126,6 +131,18 @@ python metrics/llm_judge/judge.py  --mode image --results-dir $RESULTS
 
 See [`metrics/README.md`](metrics/README.md) for the full setup of SigLIP-2,
 DINOv3, and Uni3D (model weights, conda env, GPU notes).
+
+## Data pipeline
+
+The factory scripts, renders, and meshes behind the **3DCodeData** corpus are
+produced by the operators in [`data_pipeline/`](data_pipeline/) — validation,
+multi-view rendering, reference-comparison grids, and seed-coverage summaries.
+That directory also collects the **key curation notes**, most importantly
+[`random_seed_setting.md`](data_pipeline/notes/random_seed_setting.md): Infinigen
+uses two distinct seeds (raw `idx` for parameter sampling, `int_hash((idx,idx))`
+for geometry), and conflating them silently produces objects with the wrong
+proportions. See [`data_pipeline/README.md`](data_pipeline/README.md) for the
+full picture.
 
 ## Contributing
 
