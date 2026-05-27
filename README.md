@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="3DCodeBench" width="420"/>
+  <img src="assets/logo.png" alt="3DCodeBench" width="600"/>
 </p>
 
 **Benchmarking Agentic Procedural 3D Modeling Via Code.**
