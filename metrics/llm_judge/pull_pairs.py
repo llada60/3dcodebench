@@ -6,11 +6,11 @@ For each human vote (pulled live from Supabase), resolve:
   - model_a / model_b slug
   - per-side code path + 4 render paths (via cells.csv variants)
 
-Writes to /lab/yipeng/infinigen/eval/arena/judge_data/pairs.jsonl.
+Writes to arena/judge_data/pairs.jsonl.
 
 Run:
-    python /lab/yipeng/infinigen/eval/judge/pull_pairs.py
-    python /lab/yipeng/infinigen/eval/judge/pull_pairs.py --limit 50
+    python metrics/llm_judge/pull_pairs.py
+    python metrics/llm_judge/pull_pairs.py --limit 50
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ import re
 import sys
 from pathlib import Path
 
-EVAL_ROOT  = Path("/lab/yipeng/infinigen/eval")
+EVAL_ROOT  = Path(os.environ.get("EVAL_ROOT", "."))
 ARENA_DIR  = EVAL_ROOT / "arena"
 DATA_ROOT  = EVAL_ROOT / "data"
 RESULTS_ROOT = EVAL_ROOT / "results"

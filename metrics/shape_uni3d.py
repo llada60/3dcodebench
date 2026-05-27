@@ -35,6 +35,7 @@ Output:
 
 import argparse
 import json
+import os
 import sys
 import time
 import types
@@ -47,7 +48,8 @@ from PIL import Image
 
 EVAL_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DATA_ROOT = EVAL_ROOT / "data"
-UNI3D_REPO = Path("/lab/yipeng/infinigen/external/Uni3D")
+# Point UNI3D_REPO at your local clone of https://github.com/baaivision/Uni3D
+UNI3D_REPO = Path(os.environ.get("UNI3D_REPO", EVAL_ROOT / "external" / "Uni3D"))
 sys.path.insert(0, str(UNI3D_REPO))
 
 

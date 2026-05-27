@@ -13,16 +13,17 @@ Writes per-judge summaries to arena/judge_data/summary/<judge>__<mode>.json
 and a top-level arena/judge_data/summary/overall.json + table.txt.
 
 Usage:
-    python /lab/yipeng/infinigen/eval/judge/summarize.py
+    python metrics/llm_judge/summarize.py
 """
 from __future__ import annotations
 
 import json
+import os
 from collections import Counter, defaultdict
 from pathlib import Path
 
-RESULTS_DIR = Path("/lab/yipeng/infinigen/eval/arena/judge_data/results")
-SUMMARY_DIR = Path("/lab/yipeng/infinigen/eval/arena/judge_data/summary")
+RESULTS_DIR = Path(os.environ.get("JUDGE_DATA", "arena/judge_data")) / "results"
+SUMMARY_DIR = Path(os.environ.get("JUDGE_DATA", "arena/judge_data")) / "summary"
 LABELS = ["a", "b", "tie", "both_bad"]
 
 

@@ -38,8 +38,21 @@ GLB and a **white-mode geometry** GLB used for Chamfer / Uni3D shape scoring.
 | `viz_factory.py` | Renders factory variants and composes side-by-side comparison grids against the reference Infinigen renders, to eyeball seed-vs-groundtruth alignment. |
 | `sum_factories.py` | Scans an output tree and summarizes variants + seed counts per category; flags categories with fewer than 60 seeds. |
 
-All three Blender-driven scripts read the interpreter path from `$BLENDER`
-(default points at a placeholder — set it to your Blender 5.0 binary).
+All Blender-driven scripts take the interpreter via `$BLENDER` (or `--blender`),
+falling back to `blender` on `PATH`.
+
+**Which run directly on the HuggingFace `3DCodeData/` download:**
+
+| Operator | On HF data as-is? |
+|---|---|
+| `validate_blender_scripts.py <dir>` | ✅ Yes — point it at any tree of `.py` scripts (e.g. a downloaded `3DCodeData/`); it just executes each and checks the mesh. |
+| `renderer.py <script-or-dir>` | ✅ Yes — same, renders any standalone `_bpy`-style script. |
+| `sum_factories.py <dir>` | ✅ Mostly — counts variants/seeds per category over any tree. |
+| `viz_factory.py` | ⚠️ Partially — runs a script via `--script`, but its **auto-discovery and side-by-side reference grids assume the `objects_blender/` + `output_factories/` source layout**, which is *not* the HF layout. The comparison grids need the original Infinigen reference renders. |
+
+In short: validation and rendering work out-of-the-box on the published data;
+the reference-comparison tooling is tied to the internal source tree used to
+build the corpus.
 
 ## `notes/` — key decisions
 

@@ -3,17 +3,18 @@
 accuracy + Pearson + Cohen's kappa on the remaining decisive pairs.
 
 Usage:
-    python /lab/yipeng/infinigen/eval/judge/summarize_ab.py
+    python metrics/llm_judge/summarize_ab.py
 """
 from __future__ import annotations
 
 import json
+import os
 import math
 from collections import Counter, defaultdict
 from pathlib import Path
 
-RESULTS_DIR = Path("/lab/yipeng/infinigen/eval/arena/judge_data/results")
-SUMMARY_DIR = Path("/lab/yipeng/infinigen/eval/arena/judge_data/summary")
+RESULTS_DIR = Path(os.environ.get("JUDGE_DATA", "arena/judge_data")) / "results"
+SUMMARY_DIR = Path(os.environ.get("JUDGE_DATA", "arena/judge_data")) / "summary"
 
 
 def load_results(judge_dir: Path) -> list[dict]:

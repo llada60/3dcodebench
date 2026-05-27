@@ -10,14 +10,15 @@ Output: one JSON file per pair under
     arena/judge_data/results/<judge_slug>/<mode>/<vote_id>.json
 
 Usage:
-    python /lab/yipeng/infinigen/eval/judge/judge.py \
+    python metrics/llm_judge/judge.py \
         --judge gemini-3-flash-preview --mode image
-    python /lab/yipeng/infinigen/eval/judge/judge.py \
+    python metrics/llm_judge/judge.py \
         --judge gemini-3.1-pro-preview --mode code --limit 50
 """
 from __future__ import annotations
 
 import argparse
+import os
 import json
 import random
 import re
@@ -27,7 +28,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-EVAL_ROOT  = Path("/lab/yipeng/infinigen/eval")
+EVAL_ROOT  = Path(os.environ.get("EVAL_ROOT", "."))
 JUDGE_DIR  = EVAL_ROOT / "judge"
 PROMPTS_DIR = JUDGE_DIR / "prompts"
 PAIRS_FILE  = EVAL_ROOT / "arena" / "judge_data" / "pairs.jsonl"

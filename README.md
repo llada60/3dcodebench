@@ -48,7 +48,9 @@ git clone https://github.com/gaoypeng/3dcodebench.git
 cd 3dcodebench
 pip install -r requirements.txt
 
-# Blender 5.0 must be installed separately (https://www.blender.org/download/):
+# Blender 5.0 must be installed separately (https://www.blender.org/download/).
+# The render / GLB-export / runner steps read $BLENDER (falling back to
+# `blender` on PATH); every Blender-driven script also takes --blender to override.
 export BLENDER=/path/to/blender-5.0/blender
 
 # API keys -- set the ones for the providers you'll call:
@@ -80,6 +82,22 @@ white-mode geometry GLB for shape scoring). See
 [benchmark/README.md](benchmark/README.md) for details, and
 [data_pipeline/](data_pipeline/) for how it was curated.
 
+### Reference images for image-to-3D
+
+The `3DCodeBench/` eval set ships **code + two prompts per category, no images**.
+`text_to_3d` and the code-only tasks therefore work straight after the download
+above. **`image_to_3d` additionally needs reference views** at
+`benchmark/categories/<inst>/images/Image_0{05,15,25,35}.png` — the four
+canonical azimuths {45°, 135°, 225°, 315°} the benchmark was selected at.
+
+Render them once from each ground-truth factory using the same camera
+convention as the scorers (see the camera path in
+[`core/render.py`](core/render.py); [`data_pipeline/operators/renderer.py`](data_pipeline/operators/renderer.py)
+produces the equivalent multi-view PNGs). Put the four PNGs under each
+instance's `images/` subdir. (Alternatively, point the runner at a different
+reference-image folder via the `image_subdir` config field — e.g. a generated
+reference image instead of the turntable renders.)
+
 ### Outputs
 
 `results/<model>/<Category>_seed0/`:
@@ -94,7 +112,10 @@ white-mode geometry GLB for shape scoring). See
 python tasks/text_to_3d/run.py    --config configs/gemini_3_1_pro.yaml
 
 # Task 2: single-shot image-to-3D
-#   The runner renders the reference image on the fly from the factory.
+#   Conditions the model on reference views instead of text. These must
+#   already exist at benchmark/categories/<inst>/images/Image_0{05,15,25,35}.png
+#   (see "Reference images for image-to-3D" below — the benchmark ships code +
+#   prompts only, so you render the references once from each factory .py).
 python tasks/image_to_3d/run.py   --config configs/gemini_3_1_pro.yaml --task image_to_3d
 
 # Task 3: multi-turn error-feedback loop (T=3 retries on failed instances)

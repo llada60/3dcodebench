@@ -102,7 +102,7 @@ DEFAULTS = {
     "parse_retries": 3,         # in-call resamples if response fails ast.parse
     "glb_export": False,        # if true, spawn Blender to export <inst>/glb/<inst>.glb
                                 # immediately after each successful inference
-    "blender_path": "/lab/yipeng/bin/blender",
+    "blender_path": os.environ.get("BLENDER", "blender"),
     "glb_timeout": 180,         # seconds; per-instance hard cap for the Blender export
     "render_views": False,      # if true, spawn Blender to render <inst>/renders/Image_*.png
                                 # immediately after each successful inference. The render_log.json

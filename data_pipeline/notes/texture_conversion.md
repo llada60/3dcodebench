@@ -182,7 +182,7 @@ Read before starting a new category.
 
 ### Workspace hygiene
 
-- **Temp / debug scripts go in `/lab/yipeng/infinigen/tmp`**, NOT inside `objects_blender_texture/<cat>/`. Keep category folders clean: they should contain only the final converted factory scripts.
+- **Temp / debug scripts go in a scratch dir (e.g. `tmp/`)**, NOT inside `objects_blender_texture/<cat>/`. Keep category folders clean: they should contain only the final converted factory scripts.
 - **Clean intermediate renders**: After `viz_factory`-style previews, `rm -rf` the per-seed directories; keep only the `grid_page` PNG as the human-visible verification artifact.
 
 ### Naming & readability

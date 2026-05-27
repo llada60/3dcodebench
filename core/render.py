@@ -265,7 +265,7 @@ from pathlib import Path
 
 EVAL_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RESULTS_ROOT = EVAL_ROOT / "results"
-DEFAULT_BLENDER = "/lab/yipeng/bin/blender"
+DEFAULT_BLENDER = os.environ.get("BLENDER", "blender")
 
 
 def parse_cli():

@@ -157,8 +157,8 @@ def aggregate_model(model_dir: Path):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--roots", nargs="+", default=[
-        "/lab/yipeng/infinigen/eval/results/text_to_3D",
-        "/lab/yipeng/infinigen/eval/results/image_to_3D",
+        "results/text_to_3D",
+        "results/image_to_3D",
     ])
     p.add_argument("--out", default="/tmp/failure_taxonomy.json")
     args = p.parse_args()
