@@ -1,4 +1,6 @@
-# 3DCodeBench
+<p align="center">
+  <img src="assets/logo.png" alt="3DCodeBench" width="420"/>
+</p>
 
 **Benchmarking Agentic Procedural 3D Modeling Via Code.**
 *Yipeng Gao, Lei Shu, Genzhi Ye, Xi Xiong, Ameesh Makadia, Meiqi Guo, Laurent Itti, Jindong Chen*
