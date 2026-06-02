@@ -7,7 +7,11 @@
 
 | Project page | Paper | Online arena |
 |---|---|---|
-| [3dcodebench.com](https://www.3dcodebench.com) | (preprint coming soon) | [3dcodebench.com/arena](https://www.3dcodebench.com/arena) |
+| [3dcodebench.com](https://www.3dcodebench.com) | [arXiv:2606.01057](https://arxiv.org/abs/2606.01057) | [3dcodebench.com/arena](https://www.3dcodebench.com/arena) |
+
+## News
+
+- [06/01/2026] Paper released on arXiv: [3DCodeBench: Benchmarking Agentic Procedural 3D Modeling Via Code](https://arxiv.org/abs/2606.01057).
 
 3DCodeBench measures how well frontier models can **write Blender 5.0 Python
 that procedurally builds a specific 3D object**. The benchmark covers 212
@@ -16,6 +20,17 @@ with a ground-truth factory script, a text description, and a structured
 instruction. We evaluate single-shot, multi-turn, and full coding-agent
 settings, and score outputs on executability, image similarity (SigLIP-2 /
 DINOv3), 3D-shape distance (Chamfer / Uni3D), and LLM-as-judge.
+
+## Built on Infinigen
+
+3DCodeBench builds on the [Infinigen](https://github.com/princeton-vl/infinigen)
+procedural generation ecosystem. The benchmark categories and the broader
+3DCodeData corpus are distilled from Infinigen / Infinigen Indoors procedural
+assets, then converted into standalone Blender 5.0 scripts for evaluating
+text-, image-, and agent-driven procedural 3D modeling via code.
+
+If you use the released benchmark, dataset, or generated factories, please cite
+3DCodeBench and the relevant Infinigen works listed below.
 
 ## Repository layout
 
@@ -81,6 +96,22 @@ multi-view WebP renders, and two exported meshes (a baked textured GLB + a
 white-mode geometry GLB for shape scoring). See
 [benchmark/README.md](benchmark/README.md) for details, and
 [data_pipeline/](data_pipeline/) for how it was curated.
+
+### Raw model logs (optional)
+
+Our own inference runs — the **raw outputs of every evaluated model and coding
+agent** (**81,605** generated Blender scripts across 82,042 trials, plus 2,767
+agent transcripts) — are released alongside the benchmark under
+`3DCodeBench_ModelLogs/` in the same dataset. Use them to reproduce our
+leaderboard numbers or for error / cost analysis without re-running inference:
+
+```bash
+huggingface-cli download YipengGao/3DCode \
+    --repo-type dataset --include "3DCodeBench_ModelLogs/**" --local-dir model_logs
+```
+
+See [**Dataset organization**](#dataset-organization) below for the full layout
+and how to load the generated code.
 
 ### Reference images for image-to-3D
 
@@ -153,6 +184,106 @@ python metrics/llm_judge/judge.py  --mode image --results-dir $RESULTS
 See [`metrics/README.md`](metrics/README.md) for the full setup of SigLIP-2,
 DINOv3, and Uni3D (model weights, conda env, GPU notes).
 
+## Dataset organization
+
+Everything lives in **one HuggingFace dataset, [`YipengGao/3DCode`](https://huggingface.co/datasets/YipengGao/3DCode)**,
+under three top-level folders:
+
+| Folder | What | Size |
+|---|---|---|
+| `3DCodeBench/` | The eval set — 212 categories, one canonical seed each: reference factory `.py` + `prompt_description.txt` + `prompt_instruction.txt`. No images (you render references yourself, see above). | 212 categories |
+| `3DCodeData/` | The broader corpus — 212 factories × 60 seeds. Each instance ships a full-material script, a geometry-only `_geo.py`, 2 captions, 4 WebP renders, and two GLBs (textured + white-mode). Also exposed as `3DCodeData/data/train.parquet` for fast loading. | 12,720 instances |
+| `3DCodeBench_ModelLogs/` | **Our raw inference logs** — every model's generated code, prompt, and per-call metadata, plus full coding-agent transcripts. | 82,042 trials |
+
+### 📁 `3DCodeBench_ModelLogs/`
+
+```
+3DCodeBench_ModelLogs/
+├── data/                       # 16 live settings, ONE PARQUET EACH
+│   ├── text_to_3D.parquet      #   row = one trial; the generated code is the `code` column
+│   ├── image_to_3D.parquet
+│   ├── text_to_3D_agent.parquet
+│   ├── *_multi_turn_debug.parquet / *_with_api_doc.parquet / *_visual_feedback*.parquet
+│   ├── *_from_nbp*.parquet
+│   └── thinking_ablation.parquet / temperature_ablation.parquet / images_amount_ablation.parquet
+├── agent_logs/                 # 2,767 raw coding-agent transcripts
+│   └── <setting>/<model>/<Object>_seed0/
+│       ├── agent_stdout.log    #   full agent trajectory (tool calls, turns, stdout)
+│       ├── agent_meta.json     #   num_turns, cost_usd, tokens, duration, exit code
+│       └── agent_prompt.txt
+├── deprecated/                 # 3 superseded/broken early runs — do NOT use for numbers
+└── inputs/                     # shared inputs: 212 objects × (2 prompt txts + 4 PNG views)
+```
+
+> **The generated code is stored *inside* the parquet files, in the `code` column —
+> not as loose `.py` files.** One row = one trial; pick a parquet by `setting`, a row by
+> `(model, instance)`, and read `code`. This is intentional: it keeps the release light,
+> lets you filter/aggregate by model or object in one line, and ships token/cost/status
+> metadata next to every script.
+
+**Where is everything:**
+
+| You want… | Where it is |
+|---|---|
+| **Output code** (model-generated script) | `code` column of `data/<setting>.parquet` — one row per trial |
+| Each multi-turn / visual-feedback attempt | `attempt_codes` column (JSON string → `list[str]`) |
+| The exact prompt sent | `prompt` column |
+| **Text input** (description / spec) | `inputs/<Object>_seed0/prompt_description.txt` · `prompt_instruction.txt` |
+| **Image input** (4 reference views) | `inputs/<Object>_seed0/images/Image_0{05,15,25,35}.png` |
+| Coding-agent full transcript | `agent_logs/<setting>/<model>/<Object>_seed0/agent_stdout.log` |
+| Model / object / outcome / cost | `model`, `instance`, `status`, `cost_usd`, `*_tokens` columns |
+
+**Scale:** 16 live settings hold **78,956** generated scripts; `deprecated/` adds **2,649**;
+multi-turn / visual-feedback settings additionally keep **every** intermediate attempt in the
+`attempt_codes` column (≈ 6,300 more) — **81,605 final scripts / ≈ 87,900 counting attempts**,
+across up to 12 models × 212 objects plus the large ablation sweeps, with **2,767** agent
+transcripts.
+
+**Parquet columns** (28, identical across every setting; the two `*_agent` settings add 4 →
+32): `setting`, `sub_task`, `model`, `instance`, `factory`, `seed` (usually null — the seed
+index is in the instance name), `prompt` (exact input), **`code`** (the generated script),
+`code_chars`, `n_attempts`, `attempt_codes` (a **JSON-encoded string** of `list[str]`, one per
+attempt — multi-turn/visual-feedback only; `json.loads` it), `status`, `error`,
+`input_tokens` / `output_tokens` / `thoughts_tokens` / `total_tokens`, `cache_read_tokens`,
+`cache_creation_tokens`, `cost_usd`, `latency_s`, `parse_attempts`, `provider`, `temperature`,
+`thinking`, `task` (`text_to_3d`/`image_to_3d`), `prompt_type`, `max_images`. Agent settings
+add `num_turns`, `agent_exit`, `time_limit_s`, `max_budget`. `prompt`/`code`/`status`/tokens
+are always populated; the rest are filled only where the provider reported them (nullable
+numeric columns are `float` with `NaN` where missing).
+
+### Loading the model outputs
+
+```python
+import pandas as pd
+from huggingface_hub import hf_hub_download
+
+# 1. Load one setting's parquet (each row is one trial)
+f = hf_hub_download("YipengGao/3DCode",
+                    "3DCodeBench_ModelLogs/data/text_to_3D.parquet", repo_type="dataset")
+df = pd.read_parquet(f)
+
+# 2. Success rate per model
+print(df.assign(ok=df.status.eq("OK")).groupby("model").ok.mean().sort_values())
+
+# 3. Pull one trial's generated code and write it back to a .py file
+row = df[(df.model == "gpt-5.5") & (df.instance == "Beetle_seed0")].iloc[0]
+open("Beetle_seed0.py", "w").write(row.code)
+
+# 4. Every intermediate attempt of a multi-turn run
+import json
+mt = pd.read_parquet(hf_hub_download("YipengGao/3DCode",
+        "3DCodeBench_ModelLogs/data/text_to_3D_multi_turn_debug.parquet", repo_type="dataset"))
+attempts = json.loads(mt.iloc[0].attempt_codes)   # list[str], one per turn
+```
+
+The `3DCodeData/` corpus loads the same way via the `datasets` library — see the
+[dataset card](https://huggingface.co/datasets/YipengGao/3DCode) for details, or:
+
+```python
+from datasets import load_dataset
+ds = load_dataset("YipengGao/3DCode", "3DCodeData", split="train")  # factory, code, code_geo, captions, preview
+```
+
 ## Data pipeline
 
 The factory scripts, renders, and meshes behind the **3DCodeData** corpus are
@@ -178,20 +309,44 @@ an issue first to align on scope.
 
 ## Citation
 
+Please cite 3DCodeBench, and also cite the Infinigen works that the procedural
+asset library is based on:
+
 ```bibtex
 @misc{gao2026threedcodebench,
   title  = {3DCodeBench: Benchmarking Agentic Procedural 3D Modeling Via Code},
   author = {Gao, Yipeng and Shu, Lei and Ye, Genzhi and Xiong, Xi and
             Makadia, Ameesh and Guo, Meiqi and Itti, Laurent and Chen, Jindong},
   year   = {2026},
-  howpublished = {\url{https://www.3dcodebench.com}}
+  eprint = {2606.01057},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CV},
+  url    = {https://arxiv.org/abs/2606.01057}
+}
+
+@inproceedings{infinigen2023infinite,
+  title={Infinite Photorealistic Worlds Using Procedural Generation},
+  author={Raistrick, Alexander and Lipson, Lahav and Ma, Zeyu and Mei, Lingjie and Wang, Mingzhe and Zuo, Yiming and Kayan, Karhan and Wen, Hongyu and Han, Beining and Wang, Yihan and Newell, Alejandro and Law, Hei and Goyal, Ankit and Yang, Kaiyu and Deng, Jia},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  pages={12630--12641},
+  year={2023}
+}
+
+@inproceedings{infinigen2024indoors,
+  author    = {Raistrick, Alexander and Mei, Lingjie and Kayan, Karhan and Yan, David and Zuo, Yiming and Han, Beining and Wen, Hongyu and Parakh, Meenal and Alexandropoulos, Stamatis and Lipson, Lahav and Ma, Zeyu and Deng, Jia},
+  title     = {Infinigen Indoors: Photorealistic Indoor Scenes using Procedural Generation},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  month     = {June},
+  year      = {2024},
+  pages     = {21783-21794}
 }
 ```
 
 ## Acknowledgements
 
 Categories are distilled from the [Infinigen](https://github.com/princeton-vl/infinigen)
-procedural asset library (Princeton Vision & Learning Lab).
+procedural asset ecosystem, including Infinigen and Infinigen Indoors from the
+Princeton Vision & Learning Lab.
 
 ## License
 
