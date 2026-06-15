@@ -138,7 +138,7 @@ def parse_cli():
     p.add_argument("--config", type=Path, required=True,
                    help="Path to a YAML config file under eval/config/.")
     # All overrides default to None so we can tell whether the user passed them.
-    p.add_argument("--provider", choices=["gemini", "anthropic", "openai"], default=None)
+    p.add_argument("--provider", choices=["gemini", "anthropic", "openai", "claude_code"], default=None)
     p.add_argument("--api-key", default=None)
     p.add_argument("--model", default=None)
     p.add_argument("--temperature", type=float, default=None)
@@ -206,21 +206,24 @@ def resolve_settings(cli):
             settings[key] = cli_val
 
     # API key: explicit value > provider-specific env var.
+    # claude_code drives the local Claude Code CLI, which uses its own
+    # logged-in (Pro/Max) auth — it needs no API key.
     provider = settings["provider"]
-    env_var = {
-        "gemini":    "GEMINI_API_KEY",
-        "anthropic": "ANTHROPIC_API_KEY",
-        "openai":    "OPENAI_API_KEY",
-    }.get(provider)
-    if not env_var:
-        raise SystemExit(f"Unknown provider: {provider!r}")
-    if not settings["api_key"]:
-        settings["api_key"] = os.environ.get(env_var)
-    if not settings["api_key"]:
-        raise SystemExit(
-            f"No API key found for provider={provider!r}. "
-            f"Set api_key in the config file or export {env_var}."
-        )
+    if provider != "claude_code":
+        env_var = {
+            "gemini":    "GEMINI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+            "openai":    "OPENAI_API_KEY",
+        }.get(provider)
+        if not env_var:
+            raise SystemExit(f"Unknown provider: {provider!r}")
+        if not settings["api_key"]:
+            settings["api_key"] = os.environ.get(env_var)
+        if not settings["api_key"]:
+            raise SystemExit(
+                f"No API key found for provider={provider!r}. "
+                f"Set api_key in the config file or export {env_var}."
+            )
 
     settings["data_dir"] = Path(settings["data_dir"])
     if settings["system_prompt"] is None:
@@ -315,6 +318,10 @@ def _accumulate_usage(record, usage, dt):
     """Sum latency / tokens across in-call retries so the log reflects
     the full cost of producing this output, not just the last attempt."""
     record["latency_s"] = round((record.get("latency_s") or 0) + dt, 2)
+    # Claude Code CLI surfaces its own cost; accumulate it across retries.
+    cli_cost = usage.pop("_cli_cost_usd", None) if usage else None
+    if cli_cost is not None:
+        record["_cli_cost_usd"] = (record.get("_cli_cost_usd") or 0) + cli_cost
     for k in _TOKEN_FIELDS:
         v = usage.get(k)
         if v is None:
@@ -610,6 +617,11 @@ def process_one(ctx, settings, system_prompt, output_dir, instance_dir):
 
 
 def _finalise_cost(record, settings):
+    # The Claude Code CLI reports its own per-call cost (no PRICING entry for
+    # the CLI model label); prefer that when present.
+    if record.get("_cli_cost_usd") is not None:
+        record["cost_usd"] = round(record.pop("_cli_cost_usd"), 6)
+        return
     record["cost_usd"] = cost_usd(
         settings.model,
         input_tokens=record.get("input_tokens") or 0,

@@ -1,0 +1,35 @@
+# Inference config for Claude Sonnet 4.6 driven through the local Claude Code
+# CLI (Pro/Max subscription auth — no API key).
+# Run:  python tasks/text_to_3d/run.py --config configs/claude_code_sonnet_4_6.yaml
+#
+# Requires the `claude` CLI installed and logged in:
+#   npm install -g @anthropic-ai/claude-code   (then `claude` once to /login)
+# Verify:  claude -p "Reply with OK" --output-format json
+
+# --- Auth ---
+provider: claude_code           # shells out to `claude`; uses its own auth
+api_key: null                   # ignored for claude_code
+
+# --- Model & generation ---
+# "claude-code-sonnet-4-6" = run via the CLI on Sonnet 4.6. The provider maps
+# this label to the CLI's --model id (claude-sonnet-4-6).
+model: claude-code-sonnet-4-6
+temperature: 1.0                # ignored by the CLI; kept for record parity
+thinking: medium                # not forwarded to the CLI (it picks its own)
+max_output_tokens: 64000
+
+# --- Eval scope ---
+prompt_type: description
+instances: null
+data_dir: ../data/3DCode/3DCodeData
+image_subdir: renders          # image_to_3d: refs live in <inst>/renders/Image_*.webp
+                               # (this dataset has no "images/" subdir)
+
+# --- Runtime ---
+# The CLI is a heavy local subprocess per call; keep concurrency modest and
+# leave rpm/tpm unset (the CLI manages its own subscription throttling).
+max_workers: 4
+rpm: null
+tpm: null
+overwrite: false
+output_dir: null

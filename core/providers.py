@@ -506,10 +506,151 @@ def call_openai(ctx, settings, system_prompt, user_content):
     }
 
 
+# ---- Claude Code CLI adapter ---------------------------------------------
+# Drives the locally-installed `claude` CLI (`-p` print mode) instead of the
+# HTTP SDK, so evaluation runs against a logged-in Pro/Max subscription with
+# no API key. Modeled on TaskSolver/tasksolver/claude_code.py.
+
+import json as _json
+import os as _os
+import subprocess as _subprocess
+from glob import glob as _glob
+
+# Labels like "claude-code-sonnet-4-6" mean "run via the Claude Code CLI using
+# Sonnet 4.6". The CLI's --model only accepts bare family aliases
+# (sonnet/opus/fable) or full model ids (claude-sonnet-4-6), so strip the
+# "claude-code-" prefix down to the real id passed to --model.
+_CLI_MODEL_ALIASES = {
+    "claude-code-sonnet-4-6": "claude-sonnet-4-6",
+    "claude-code-opus-4-7":   "claude-opus-4-7",
+    "claude-code-opus-4-8":   "claude-opus-4-8",
+    "claude-code-fable-5":    "claude-fable-5",
+    "claude-code-haiku-4-5":  "claude-haiku-4-5",
+}
+
+
+def _resolve_cli_model(model):
+    """Map a 'claude-code-*' label to the real --model id the CLI accepts.
+    Plain ids (sonnet, claude-sonnet-4-6, …) pass through unchanged. The
+    sentinel 'claude-code' (no family) -> None = CLI default model."""
+    if model in (None, "claude-code"):
+        return None
+    if model in _CLI_MODEL_ALIASES:
+        return _CLI_MODEL_ALIASES[model]
+    if model.startswith("claude-code-"):
+        return "claude-" + model[len("claude-code-"):]
+    return model
+
+
+def _claude_command():
+    """Resolve the `claude` binary. Prefer a Homebrew cask (macOS); fall back
+    to whatever is on PATH (Linux/dev installs)."""
+    for path in reversed(sorted(_glob("/opt/homebrew/Caskroom/claude-code/*/claude"))):
+        if _os.access(path, _os.X_OK):
+            return path
+    return "claude"
+
+
+def _flatten_to_prompt(system_prompt, user_content):
+    """Collapse the provider-neutral content into a single CLI prompt string.
+    Images are saved to disk and referenced by path (the CLI Read tool can
+    open them), mirroring the TaskSolver adapter's behavior."""
+    import tempfile
+    parts = []
+    if system_prompt:
+        parts.append(system_prompt)
+    image_paths = []
+    if isinstance(user_content, str):
+        text_parts = [user_content] if user_content else []
+    else:
+        text_parts = []
+        for p in user_content:
+            if p["type"] == "text":
+                text_parts.append(p["text"])
+            elif p["type"] == "image":
+                ext = (p.get("mime", "image/png").split("/")[-1] or "png")
+                fd, path = tempfile.mkstemp(suffix="." + ext, prefix="ccimg_")
+                with _os.fdopen(fd, "wb") as f:
+                    f.write(p["data"])
+                image_paths.append(path)
+            else:
+                raise ValueError(f"unknown part type: {p['type']!r}")
+    if image_paths:
+        parts.append("The visual inputs are saved as local image files. Use the "
+                     "Read tool to inspect them when answering.")
+        parts.extend(f"Image {i}: {pth}" for i, pth in enumerate(image_paths, 1))
+    parts.extend(text_parts)
+    return "\n\n".join(parts)
+
+
+def call_claude_code(ctx, settings, system_prompt, user_content):
+    """Run one inference via the Claude Code CLI in print mode.
+
+    Returns (text, usage) like the SDK adapters. Token counts come from the
+    CLI's JSON `usage` block; the CLI's own `total_cost_usd` is surfaced under
+    the `_cli_cost_usd` usage key (popped by the caller, not summed)."""
+    prompt = _flatten_to_prompt(system_prompt, user_content)
+    model = ctx.get("cli_model")
+
+    def build(tool_flag):
+        cmd = [_claude_command(), "-p", prompt,
+               "--output-format", "json",
+               tool_flag, "Read",
+               "--permission-mode", "acceptEdits"]
+        if model:
+            cmd += ["--model", model]
+        return cmd
+
+    timeout = getattr(settings, "cli_timeout", None) or 1200
+    completed = _subprocess.run(build("--tools"), check=False,
+                                capture_output=True, text=True, timeout=timeout)
+    # Older CLIs use --allowedTools instead of --tools.
+    if completed.returncode != 0 and "unknown option" in (completed.stderr or "").lower():
+        completed = _subprocess.run(build("--allowedTools"), check=False,
+                                    capture_output=True, text=True, timeout=timeout)
+
+    stdout = (completed.stdout or "").strip()
+    stderr = (completed.stderr or "").strip()
+    if completed.returncode != 0:
+        raise RuntimeError(f"claude CLI exit {completed.returncode}: "
+                           f"{stderr or stdout or '(no output)'}")
+
+    try:
+        parsed = _json.loads(stdout)
+    except _json.JSONDecodeError:
+        # Non-JSON stdout: treat the whole thing as the answer.
+        return stdout, {}
+
+    # A non-zero api_error_status (e.g. 404 bad model) comes back with rc 0.
+    if parsed.get("api_error_status") or parsed.get("is_error"):
+        raise RuntimeError(f"claude CLI error (api_error_status="
+                           f"{parsed.get('api_error_status')}): "
+                           f"{parsed.get('result')}")
+
+    text = (parsed.get("result") or "").strip()
+    u = parsed.get("usage") or {}
+    in_tok    = u.get("input_tokens", 0) or 0
+    cache_r   = u.get("cache_read_input_tokens", 0) or 0
+    cache_w   = u.get("cache_creation_input_tokens", 0) or 0
+    out_tok   = u.get("output_tokens", 0) or 0
+    usage = {
+        "input_tokens":          in_tok,
+        "output_tokens":         out_tok,
+        "thoughts_tokens":       None,
+        "total_tokens":          in_tok + cache_r + cache_w + out_tok,
+        "cache_read_tokens":     cache_r,
+        "cache_creation_tokens": cache_w,
+    }
+    if parsed.get("total_cost_usd") is not None:
+        usage["_cli_cost_usd"] = parsed["total_cost_usd"]
+    return text, usage
+
+
 _PROVIDER_FUNCS = {
-    "gemini":    call_gemini,
-    "anthropic": call_anthropic,
-    "openai":    call_openai,
+    "gemini":     call_gemini,
+    "anthropic":  call_anthropic,
+    "openai":     call_openai,
+    "claude_code": call_claude_code,
 }
 
 
@@ -536,6 +677,10 @@ def build_provider_ctx(settings):
         except ImportError:
             raise SystemExit("openai not installed. Run: pip install openai")
         ctx = {"client": openai.OpenAI(api_key=settings.api_key)}
+    elif settings.provider == "claude_code":
+        # No SDK client — the adapter shells out to the local `claude` CLI.
+        # Resolve the --model id once here from the configured model label.
+        ctx = {"client": None, "cli_model": _resolve_cli_model(settings.model)}
     else:
         raise SystemExit(f"Unknown provider: {settings.provider!r}")
 
