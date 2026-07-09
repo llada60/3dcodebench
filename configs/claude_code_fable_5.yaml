@@ -1,0 +1,39 @@
+# Image-to-3D inference config for Claude Fable 5 through the local
+# Claude Code CLI (Pro/Max subscription auth; no Anthropic API key).
+#
+# Run from 3dcodebench/:
+#   python tasks/image_to_3d/run.py --config configs/claude_code_fable_5.yaml
+#
+# Requires the `claude` CLI installed and logged in:
+#   npm install -g @anthropic-ai/claude-code
+#   claude
+# Verify:
+#   claude -p "Reply with OK" --output-format json --model claude-fable-5
+
+# --- Auth ---
+provider: claude_code
+api_key: null
+
+# --- Model & generation ---
+# The claude_code provider maps this label to the CLI model id
+# `claude-fable-5` and invokes `claude -p ... --model claude-fable-5`.
+model: claude-code-fable-5
+temperature: 1.0
+thinking: medium
+max_output_tokens: 64000
+
+# --- Eval scope ---
+task: image_to_3d
+prompt_type: description
+instances: null
+data_dir: ../data/3DCodeBench
+image_subdir: images
+max_images: null
+include_description: false
+
+# --- Runtime ---
+max_workers: 4
+rpm: null
+tpm: null
+overwrite: false
+output_dir: null

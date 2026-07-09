@@ -10,11 +10,12 @@ The system prompt defaults to `eval/prompt/<task>_system_prompt.txt` and
 output goes under `eval/results/<model>[_<task>]/<instance>/<instance>.py`.
 
 Settings are loaded from a YAML config file (see `eval/config/`); CLI
-flags override individual fields. Three providers are supported, dispatched
+flags override individual fields. Providers are supported, dispatched
 by the `provider` field (default: gemini):
     - gemini    -> google-genai SDK
     - anthropic -> anthropic SDK (Claude)
     - openai    -> openai SDK (GPT-5.x)
+    - gemini_cli -> local Gemini CLI login
 
 Examples:
     python run_inference.py --config config/gemini_3_flash.yaml
@@ -60,7 +61,7 @@ DEFAULT_LOG_ROOT = REPO_ROOT / "logs"
 EVAL_ROOT = CORE_DIR
 
 DEFAULTS = {
-    "provider": "gemini",       # gemini | anthropic | openai
+    "provider": "gemini",       # gemini | anthropic | openai | claude_code | gemini_cli
     "api_key": None,
     "model": "gemini-3-flash",
     "temperature": 0.7,
@@ -138,7 +139,7 @@ def parse_cli():
     p.add_argument("--config", type=Path, required=True,
                    help="Path to a YAML config file under eval/config/.")
     # All overrides default to None so we can tell whether the user passed them.
-    p.add_argument("--provider", choices=["gemini", "anthropic", "openai", "claude_code"], default=None)
+    p.add_argument("--provider", choices=["gemini", "anthropic", "openai", "claude_code", "gemini_cli"], default=None)
     p.add_argument("--api-key", default=None)
     p.add_argument("--model", default=None)
     p.add_argument("--temperature", type=float, default=None)
@@ -206,10 +207,9 @@ def resolve_settings(cli):
             settings[key] = cli_val
 
     # API key: explicit value > provider-specific env var.
-    # claude_code drives the local Claude Code CLI, which uses its own
-    # logged-in (Pro/Max) auth — it needs no API key.
+    # CLI providers use their own logged-in subscription auth and need no API key.
     provider = settings["provider"]
-    if provider != "claude_code":
+    if provider not in ("claude_code", "gemini_cli"):
         env_var = {
             "gemini":    "GEMINI_API_KEY",
             "anthropic": "ANTHROPIC_API_KEY",
@@ -239,6 +239,8 @@ def resolve_settings(cli):
 
 def default_output_dir(settings):
     suffix = "" if settings.task == "text_to_3d" else f"_{settings.task}"
+    if settings.task == "image_to_3d" and settings.max_images and settings.max_images > 0:
+        suffix += f"_{settings.max_images}"
     return DEFAULT_OUTPUT_ROOT / f"{settings.model}{suffix}"
 
 
@@ -402,7 +404,8 @@ def _call_and_parse(ctx, settings, system_prompt, user_content, record, out_dir)
         record["parse_attempts"] += 1
         try:
             t0 = time.time()
-            text, usage = call_provider(ctx, settings, system_prompt, user_content)
+            text, usage = call_provider(ctx, settings, system_prompt, user_content,
+                                        instance=out_dir.name, out_dir=out_dir)
             dt = time.time() - t0
         except Exception as e:
             return None, None, f"{type(e).__name__}: {e}"
@@ -420,7 +423,7 @@ def _call_and_parse(ctx, settings, system_prompt, user_content, record, out_dir)
 
         candidate = strip_code_fence(text)
         try:
-            ast.parse(candidate)
+            ast.parse(candidate) # Raises SyntaxError if unparseable. 
             code = candidate
             parse_err = None
             break
@@ -482,6 +485,8 @@ def process_one(ctx, settings, system_prompt, output_dir, instance_dir):
     out_dir.mkdir(parents=True, exist_ok=True)
     prompt_path.write_text(serialize_user_content(user_content) + "\n")
 
+    # max_render_retries: debug with Blender stderr + previous code back to model.
+    # render_views: render the code after each inference, skip the post-batch rendering.
     multi_turn = settings.render_views and settings.max_render_retries > 0
     max_render_attempts = (settings.max_render_retries + 1) if multi_turn else 1
 
@@ -739,7 +744,8 @@ def process_one_visual_feedback(ctx, settings, _system_prompt_unused, output_dir
         record["parse_attempts"] += 1
         try:
             t0 = time.time()
-            text, usage = call_provider(ctx, settings, sys_prompt, critique_user)
+            text, usage = call_provider(ctx, settings, sys_prompt, critique_user,
+                                        instance=out_dir.name, out_dir=out_dir)
             dt = time.time() - t0
         except Exception as e:
             record["status"] = "ERR"
@@ -857,6 +863,7 @@ def main():
 
     ctx = build_provider_ctx(settings)
     system_prompt = settings.system_prompt.read_text()
+    # Auxiliary Blender 5.0 API reference.
     if settings.api_reference:
         if not settings.api_reference.is_file():
             raise SystemExit(f"--api-reference not found: {settings.api_reference}")

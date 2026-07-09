@@ -551,66 +551,117 @@ def _claude_command():
     return "claude"
 
 
-def _flatten_to_prompt(system_prompt, user_content):
+CLI_WORKSPACE_ROOT = "/tmp/agent_generation"
+
+
+def _flatten_to_prompt(system_prompt, user_content, workspace):
     """Collapse the provider-neutral content into a single CLI prompt string.
-    Images are saved to disk and referenced by path (the CLI Read tool can
-    open them), mirroring the TaskSolver adapter's behavior."""
-    import tempfile
+
+    Images are written into `workspace` (the CLI's cwd) and referenced by
+    their bare filename, so the model's Read tool stays inside the workspace
+    and never has to touch a path outside it (which the headless CLI would
+    deny — the cause of the silent "images unreadable -> fall back to a
+    generic object" failure).
+
+    Returns (prompt, image_names) — `image_names` are the reference files
+    written into the workspace, so the caller can exclude them from the
+    copy-back (only model-generated files belong in results/)."""
     parts = []
     if system_prompt:
         parts.append(system_prompt)
-    image_paths = []
+    image_names = []
     if isinstance(user_content, str):
         text_parts = [user_content] if user_content else []
     else:
         text_parts = []
-        for p in user_content:
+        for i, p in enumerate(user_content, 1):
             if p["type"] == "text":
                 text_parts.append(p["text"])
             elif p["type"] == "image":
                 ext = (p.get("mime", "image/png").split("/")[-1] or "png")
-                fd, path = tempfile.mkstemp(suffix="." + ext, prefix="ccimg_")
-                with _os.fdopen(fd, "wb") as f:
+                # Prefer the original filename; fall back to a stable index.
+                fname = p.get("name") or f"reference_{i}.{ext}"
+                dst = _os.path.join(workspace, fname)
+                with open(dst, "wb") as f:
                     f.write(p["data"])
-                image_paths.append(path)
+                image_names.append(fname)
             else:
                 raise ValueError(f"unknown part type: {p['type']!r}")
-    if image_paths:
-        parts.append("The visual inputs are saved as local image files. Use the "
-                     "Read tool to inspect them when answering.")
-        parts.extend(f"Image {i}: {pth}" for i, pth in enumerate(image_paths, 1))
+    if image_names:
+        parts.append("The reference image(s) are saved in your current working "
+                     "directory. Use the Read tool to inspect each one (open by "
+                     "its filename) before answering.")
+        parts.extend(f"Image {i}: {name}" for i, name in enumerate(image_names, 1))
     parts.extend(text_parts)
-    return "\n\n".join(parts)
+    return "\n\n".join(parts), image_names
 
 
-def call_claude_code(ctx, settings, system_prompt, user_content):
+def call_claude_code(ctx, settings, system_prompt, user_content,
+                     instance=None, cli_out_dir=None):
     """Run one inference via the Claude Code CLI in print mode.
+
+    Each call runs in its own fresh workspace `/tmp/agent_generation/<random>/`
+    (cwd), with any reference images copied in. The CLI is confined to that
+    workspace (`--add-dir` names only it) so it can Read the images without
+    a permission denial while being unable to reach other files. The
+    workspace is removed after the call.
 
     Returns (text, usage) like the SDK adapters. Token counts come from the
     CLI's JSON `usage` block; the CLI's own `total_cost_usd` is surfaced under
     the `_cli_cost_usd` usage key (popped by the caller, not summed)."""
-    prompt = _flatten_to_prompt(system_prompt, user_content)
+    import shutil as _shutil
+    import tempfile as _tempfile
+
     model = ctx.get("cli_model")
+    # Unique per-call workspace under /tmp/agent_generation so concurrent
+    # workers never collide. mkdtemp creates it fresh and atomically.
+    _os.makedirs(CLI_WORKSPACE_ROOT, exist_ok=True)
+    workspace = _tempfile.mkdtemp(prefix="ws_", dir=CLI_WORKSPACE_ROOT)
+
+    prompt, ref_image_names = _flatten_to_prompt(system_prompt, user_content, workspace)
 
     def build(tool_flag):
         cmd = [_claude_command(), "-p", prompt,
                "--output-format", "json",
                tool_flag, "Read",
+               "--add-dir", workspace,
                "--permission-mode", "acceptEdits"]
         if model:
             cmd += ["--model", model]
         return cmd
 
     timeout = getattr(settings, "cli_timeout", None) or 1200
-    completed = _subprocess.run(build("--tools"), check=False,
-                                capture_output=True, text=True, timeout=timeout)
-    # Older CLIs use --allowedTools instead of --tools.
-    if completed.returncode != 0 and "unknown option" in (completed.stderr or "").lower():
-        completed = _subprocess.run(build("--allowedTools"), check=False,
+    try:
+        completed = _subprocess.run(build("--tools"), check=False, cwd=workspace,
                                     capture_output=True, text=True, timeout=timeout)
+        # Older CLIs use --allowedTools instead of --tools.
+        if completed.returncode != 0 and "unknown option" in (completed.stderr or "").lower():
+            completed = _subprocess.run(build("--allowedTools"), check=False, cwd=workspace,
+                                        capture_output=True, text=True, timeout=timeout)
 
-    stdout = (completed.stdout or "").strip()
-    stderr = (completed.stderr or "").strip()
+        stdout = (completed.stdout or "").strip()
+        stderr = (completed.stderr or "").strip()
+
+        # Copy the model-generated files back to results/<model>/<instance>/
+        # before teardown. The reference images we copied IN are excluded —
+        # only what the model produced belongs in results/. `out_dir` is passed
+        # per-call by the caller (thread-safe; ctx is shared across workers).
+        out_dir = cli_out_dir
+        if out_dir:
+            skip = set(ref_image_names)
+            _os.makedirs(out_dir, exist_ok=True)
+            for entry in _os.listdir(workspace):
+                if entry in skip:
+                    continue
+                src = _os.path.join(workspace, entry)
+                dst = _os.path.join(out_dir, entry)
+                if _os.path.isdir(src):
+                    _shutil.copytree(src, dst, dirs_exist_ok=True)
+                else:
+                    _shutil.copy2(src, dst)
+    finally:
+        _shutil.rmtree(workspace, ignore_errors=True)
+
     if completed.returncode != 0:
         raise RuntimeError(f"claude CLI exit {completed.returncode}: "
                            f"{stderr or stdout or '(no output)'}")
@@ -646,11 +697,137 @@ def call_claude_code(ctx, settings, system_prompt, user_content):
     return text, usage
 
 
+_GEMINI_CLI_MODEL_ALIASES = {
+    "gemini-cli": None,
+    "gemini-cli-pro": "gemini-3-pro-preview",
+    "gemini-cli-flash": "gemini-3-flash-preview",
+    "gemini-cli-3-pro": "gemini-3-pro-preview",
+    "gemini-cli-3-flash": "gemini-3-flash-preview",
+    "gemini-cli-3-pro-preview": "gemini-3-pro-preview",
+    "gemini-cli-3-flash-preview": "gemini-3-flash-preview",
+}
+
+
+def _resolve_gemini_cli_model(model):
+    if model in (None, "gemini-cli"):
+        return None
+    if model in _GEMINI_CLI_MODEL_ALIASES:
+        return _GEMINI_CLI_MODEL_ALIASES[model]
+    if model.startswith("gemini-cli-"):
+        suffix = model[len("gemini-cli-"):]
+        if suffix.startswith("gemini-"):
+            return suffix
+        return f"gemini-{suffix}"
+    return model
+
+
+def _gemini_command():
+    return _os.environ.get("GEMINI_CLI_COMMAND", "gemini")
+
+
+def _extract_gemini_cli_text(parsed):
+    if isinstance(parsed, str):
+        return parsed
+    if isinstance(parsed, dict):
+        for key in ("response", "result", "text", "content", "message", "output"):
+            value = parsed.get(key)
+            if isinstance(value, str) and value.strip():
+                return value
+            if isinstance(value, (dict, list)):
+                text = _extract_gemini_cli_text(value)
+                if text:
+                    return text
+        candidates = parsed.get("candidates")
+        if isinstance(candidates, list):
+            text = _extract_gemini_cli_text(candidates)
+            if text:
+                return text
+    if isinstance(parsed, list):
+        parts = []
+        for item in parsed:
+            text = _extract_gemini_cli_text(item)
+            if text:
+                parts.append(text)
+        if parts:
+            return "\n".join(parts)
+    return ""
+
+
+def _flatten_to_gemini_prompt(system_prompt, user_content, workspace):
+    parts = []
+    if system_prompt:
+        parts.append(system_prompt)
+    if isinstance(user_content, str):
+        text_parts = [user_content] if user_content else []
+    else:
+        text_parts = []
+        for i, p in enumerate(user_content, 1):
+            if p["type"] == "text":
+                text_parts.append(p["text"])
+            elif p["type"] == "image":
+                ext = (p.get("mime", "image/png").split("/")[-1] or "png")
+                fname = p.get("name") or f"reference_{i}.{ext}"
+                dst = _os.path.join(workspace, fname)
+                with open(dst, "wb") as f:
+                    f.write(p["data"])
+                parts.append(f"Image {i}: @{fname}")
+            else:
+                raise ValueError(f"unknown part type: {p['type']!r}")
+    if not isinstance(user_content, str):
+        parts.append("Inspect every referenced image before answering.")
+    parts.extend(text_parts)
+    return "\n\n".join(parts)
+
+
+def call_gemini_cli(ctx, settings, system_prompt, user_content,
+                    instance=None, cli_out_dir=None):
+    import shutil as _shutil
+    import tempfile as _tempfile
+
+    _os.makedirs(CLI_WORKSPACE_ROOT, exist_ok=True)
+    workspace = _tempfile.mkdtemp(prefix="gemini_ws_", dir=CLI_WORKSPACE_ROOT)
+    try:
+        prompt = _flatten_to_gemini_prompt(system_prompt, user_content, workspace)
+        cmd = [_gemini_command(), "-p", prompt, "--output-format", "json"]
+        model = ctx.get("cli_model")
+        if model:
+            cmd += ["--model", model]
+
+        timeout = getattr(settings, "cli_timeout", None) or 1200
+        completed = _subprocess.run(cmd, check=False, cwd=workspace,
+                                    capture_output=True, text=True, timeout=timeout)
+        stdout = (completed.stdout or "").strip()
+        stderr = (completed.stderr or "").strip()
+    finally:
+        _shutil.rmtree(workspace, ignore_errors=True)
+
+    if completed.returncode != 0:
+        output = stderr or stdout or "(no output)"
+        raise RuntimeError(f"gemini CLI exit {completed.returncode}: {output}")
+
+    try:
+        parsed = _json.loads(stdout)
+    except _json.JSONDecodeError:
+        return stdout, {}
+
+    text = _extract_gemini_cli_text(parsed).strip()
+    usage = {
+        "input_tokens":          0,
+        "output_tokens":         0,
+        "thoughts_tokens":       None,
+        "total_tokens":          0,
+        "cache_read_tokens":     0,
+        "cache_creation_tokens": 0,
+    }
+    return text, usage
+
+
 _PROVIDER_FUNCS = {
     "gemini":     call_gemini,
     "anthropic":  call_anthropic,
     "openai":     call_openai,
     "claude_code": call_claude_code,
+    "gemini_cli": call_gemini_cli,
 }
 
 
@@ -681,6 +858,10 @@ def build_provider_ctx(settings):
         # No SDK client — the adapter shells out to the local `claude` CLI.
         # Resolve the --model id once here from the configured model label.
         ctx = {"client": None, "cli_model": _resolve_cli_model(settings.model)}
+    elif settings.provider == "gemini_cli":
+        # No SDK client — the adapter shells out to the local `gemini` CLI.
+        # Auth comes from the Gemini CLI login / subscription state.
+        ctx = {"client": None, "cli_model": _resolve_gemini_cli_model(settings.model)}
     else:
         raise SystemExit(f"Unknown provider: {settings.provider!r}")
 
@@ -691,8 +872,14 @@ def build_provider_ctx(settings):
     return ctx
 
 
-def call_provider(ctx, settings, system_prompt, user_content):
+def call_provider(ctx, settings, system_prompt, user_content,
+                  instance=None, out_dir=None):
     """Dispatch to the right adapter, with rate-limited send + retry.
+
+    `instance` / `out_dir` are only meaningful for CLI adapters
+    (they name its per-call /tmp workspace and where to copy results back).
+    They're passed per-call rather than via the shared `ctx` because workers
+    run concurrently. SDK adapters ignore them.
 
     Quota / availability errors (429, 503, rate_limit, etc.) retry
     indefinitely (capped at ``QUOTA_RETRY_CAP``) without consuming the
@@ -701,13 +888,15 @@ def call_provider(ctx, settings, system_prompt, user_content):
     """
     fn = _PROVIDER_FUNCS[settings.provider]
     limiter = ctx.get("rate_limiter")
+    extra = ({"instance": instance, "cli_out_dir": out_dir}
+             if settings.provider in ("claude_code", "gemini_cli") else {})
 
     quota_attempts = 0
     transient_attempts = 0
     while True:
         handle = limiter.acquire() if limiter else None
         try:
-            text, usage = fn(ctx, settings, system_prompt, user_content)
+            text, usage = fn(ctx, settings, system_prompt, user_content, **extra)
             if limiter:
                 limiter.reconcile(handle, usage.get("total_tokens"))
             return text, usage
