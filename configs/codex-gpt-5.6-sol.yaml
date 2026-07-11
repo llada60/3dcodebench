@@ -1,0 +1,33 @@
+# GPT-5.6 Sol through the same Codex CLI / pycodex route as codex.yaml.
+# Run from 3dcodebench/:
+#   pixi run python tasks/image_to_3d/run.py \
+#     --config configs/codex-gpt-5.6-sol.yaml \
+#     --task image_to_3d --render-views --max-render-retries 5 --max-images 4
+provider: codex
+api_key: null      # OPENAI_API_KEY, otherwise local `codex login`
+
+# The codex provider strips the `codex-` prefix and invokes:
+#   codex exec -m gpt-5.6-sol
+model: codex-gpt-5.6-sol
+
+# gpt-5.6-sol is server-gated on a newer codex CLI than the wirecap-patched
+# 0.143.0-alpha.38 bundled in the tasksolver wheel (the backend 400s with
+# "requires a newer version of Codex"). Run the system codex from PATH
+# instead; the adapter then uses `codex exec --json` and parses the event
+# stream for text + usage (no wirecap capture). $CODEX_BIN also works.
+codex_bin: codex
+
+task: image_to_3d
+
+# The Codex CLI owns these generation settings.
+temperature: null
+thinking: medium
+max_output_tokens: 100000
+seed: null
+
+parse_retries: 1
+
+output_dir: null   # results/codex-gpt-5.6-sol/
+max_workers: 4
+rpm: null
+tpm: null

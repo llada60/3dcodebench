@@ -15,7 +15,7 @@ Design choices:
 from pathlib import Path
 from typing import Union
 
-_TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "prompt" / "render_feedback_user_template.txt"
+_TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "prompts" / "multi_turn_feedback_template.txt"
 
 # Hard cap on the error text fed back to the model. Blender tracebacks +
 # scene dumps can be tens of KB; truncating preserves head + tail (the

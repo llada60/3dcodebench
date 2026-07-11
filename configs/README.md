@@ -8,6 +8,7 @@ One YAML per model. Pick the right one and point any `tasks/*/run.py` at it.
 | Anthropic | `claude_opus_4_7.yaml`, `claude_sonnet_4_6.yaml`, `claude_haiku_4_5.yaml` |
 | OpenAI | `gpt_5_5.yaml`, `gpt_5_5_pro.yaml`, `gpt_5_4.yaml`, `gpt_5_4_mini.yaml`, `gpt_5_4_nano.yaml` |
 | Open-source | `gemma_4_26b.yaml`, `gemma_4_31b.yaml` |
+| CLI-backed (no API key) | `agy_gemini_3_pro.yaml` — Gemini 3 Pro through the local Antigravity `agy` CLI login, parity with 3D-CoT `inference_geometry_oneshot.py --generator_type agy-gemini-3-pro`; needs the 3D-CoT pixi env (pyagy). `codex.yaml` — the local Codex CLI's default model (`codex login`, or `OPENAI_API_KEY` if set; pinning `codex-<model>` needs API-key auth), parity with `--generator_type codex`; needs the 3D-CoT pixi env (pycodex) |
 
 ## API keys
 
