@@ -244,6 +244,41 @@ def default_output_dir(settings):
     return DEFAULT_OUTPUT_ROOT / f"{settings.model}{suffix}"
 
 
+def _resolve_blender_executable(blender_path):
+    """Return a runnable Blender path, or None if it cannot be found."""
+    raw = str(blender_path or "").strip()
+    if not raw:
+        return None
+
+    has_path_sep = os.sep in raw or (os.altsep is not None and os.altsep in raw)
+    if has_path_sep:
+        path = Path(raw).expanduser()
+        if path.is_file() and os.access(path, os.X_OK):
+            return str(path)
+        return None
+
+    return shutil.which(raw)
+
+
+def validate_blender_available(settings):
+    """Fail fast before work starts when this run will invoke Blender."""
+    if not (settings.render_views or getattr(settings, "glb_export", False)):
+        return
+
+    resolved = _resolve_blender_executable(settings.blender_path)
+    if resolved:
+        settings.blender_path = resolved
+        return
+
+    source = "$BLENDER" if os.environ.get("BLENDER") else "the 'blender' command"
+    raise SystemExit(
+        "Blender executable not found. This run needs Blender because "
+        "--render-views or --glb-export is enabled. Set BLENDER to the "
+        "Blender 5.0 executable path, or put 'blender' on PATH. "
+        f"Current lookup from {source}: {settings.blender_path!r}"
+    )
+
+
 _TOKEN_FIELDS = ("input_tokens", "output_tokens", "thoughts_tokens",
                  "total_tokens", "cache_read_tokens", "cache_creation_tokens")
 
@@ -860,6 +895,7 @@ def process_one_visual_feedback(ctx, settings, _system_prompt_unused, output_dir
 def main():
     cli = parse_cli()
     settings = resolve_settings(cli)
+    validate_blender_available(settings)
 
     ctx = build_provider_ctx(settings)
     system_prompt = settings.system_prompt.read_text()

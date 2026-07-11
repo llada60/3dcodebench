@@ -17,26 +17,34 @@ aggregate summary. Mix and match -- nothing in here depends on the runner.
 ## Common arguments
 
 ```
---results-dir <path>       results/<model>/        # required for every metric
---reference-dir <path>     benchmark/categories/   # required for similarity / chamfer / uni3d
---workers <int>            parallel rendering / scoring threads (default 8)
---out <path>               per-instance JSONL output (default: <results>/metric_<name>.jsonl)
+--model <name>             sub-folder name under --results-root      # required for every metric
+--results-root <path>      results/                                  # default: <repo>/results
+--data-root <path>         benchmark/categories/                     # reference set for similarity / chamfer / uni3d
+--instances <a> <b> ...    restrict to specific instances (default: all)
 ```
+
+Per-metric summaries are written to `<results-root>/<model>/_metrics/<name>.json`.
+Pass `--help` to any scorer for its full flag list (`executability.py` and
+`image_similarity.py` add `--workers` / `--batch-size`; `failure_taxonomy.py`
+instead takes `--roots <dir> ...` and `--out`; `llm_judge/judge.py` takes
+`--judge` / `--mode`).
 
 ---
 
 ## `executability.py`
 
-Spawns Blender 5.0 per instance, captures the exit code and the export, and
-records a per-instance `{ok: bool, traceback: str}`. The script runs in a
-sandbox temp dir; `BLENDER` env var must point to Blender 5.0.
+Aggregates the per-instance `renders/render_log.json` files written by
+[`core/render.py`](../core/render.py) (which is what actually spawns Blender
+5.0). A script "executes" iff Blender ran it without raising **and** at least
+one mesh object exists afterwards. Pure Python, no Blender needed here — run
+`core/render.py` first.
 
 ```bash
-export BLENDER=/path/to/blender-5.0/blender
-python metrics/executability.py --results-dir results/gemini-3.1-pro-preview --workers 8
+python metrics/executability.py --model gemini-3.1-pro-preview --results-root results
 ```
 
-Output: `results/<model>/executability.jsonl` + a summary `executability.json`.
+Output: `results/<model>/_metrics/executability.json` (pass rate, status
+breakdown, top error fingerprints).
 
 ---
 
@@ -46,10 +54,15 @@ Pure-Python: samples each GLB to a 10k-point cloud (`trimesh.sample_surface`),
 computes mean two-way nearest-neighbour distance (scipy `cKDTree`). Normalised
 so each cloud sits in a unit sphere first.
 
+Both meshes must already be exported as GLBs (see
+[`core/export_glb.py`](../core/export_glb.py)) — generated at
+`<results-root>/<model>/<inst>/glb/<inst>.glb`, reference at
+`<data-root>/<inst>/glb/<inst>.glb`.
+
 ```bash
 pip install trimesh scipy
-python metrics/shape_chamfer.py --results-dir results/gemini-3.1-pro-preview \
-                                --reference-dir benchmark/categories
+python metrics/shape_chamfer.py --model gemini-3.1-pro-preview --results-root results \
+                                --data-root benchmark/categories
 ```
 
 Output: per-instance distance + mean / median / std.
@@ -77,49 +90,50 @@ python -c "from transformers import AutoModel; AutoModel.from_pretrained('facebo
 
 Run:
 
+`--model` is the results sub-folder; the encoder is chosen with `--encoder`
+(`siglip2` | `dinov2` | `dinov3`, default `siglip2`):
+
 ```bash
-python metrics/image_similarity.py --results-dir results/gemini-3.1-pro-preview \
-                                   --reference-dir benchmark/categories \
-                                   --model siglip2-base \
-                                   --views 5            # cosine averaged across N camera views
+python metrics/image_similarity.py --model gemini-3.1-pro-preview --results-root results \
+                                   --data-root benchmark/categories \
+                                   --encoder siglip2
 ```
 
 Switch to DINOv3:
 ```bash
-python metrics/image_similarity.py ... --model dinov3
+python metrics/image_similarity.py --model gemini-3.1-pro-preview --results-root results \
+                                   --data-root benchmark/categories --encoder dinov3
 ```
 
-The renderer launches Blender headless to render N orbiting views of each GLB
-into `<results>/<Category>_seed0/views/view_NN.png` (cached across runs).
+It compares the rendered views of the generated GLB against the reference views
+under `<data-root>/<inst>/images/`.
 
 ---
 
 ## Uni3D (`shape_uni3d.py`)
 
-Uni3D embeddings need the Uni3D checkpoint and a CLIP text/image encoder for
-the joint space.
+Uses **Uni3D-Giant** for the point-cloud embedding and **OpenCLIP
+EVA02-E-14-plus** for the text/image side. The Uni3D-Giant checkpoint
+(`BAAI/Uni3D :: modelzoo/uni3d-g/model.pt`) is pulled automatically via
+`hf_hub_download` on first run; you only need the Uni3D repo on disk, pointed to
+by `UNI3D_REPO` (default `<repo>/external/Uni3D`).
 
 ```bash
 # Same vision env as above.
 pip install open_clip_torch ftfy regex
-
-# Download Uni3D weights (Uni3D-base, ~430MB):
-mkdir -p $HOME/.cache/uni3d
-wget -O $HOME/.cache/uni3d/uni3d_base.pt \
-    https://huggingface.co/BAAI/Uni3D/resolve/main/uni3d_base.pt
-export UNI3D_CKPT=$HOME/.cache/uni3d/uni3d_base.pt
+git clone https://github.com/baaivision/Uni3D external/Uni3D
+export UNI3D_REPO=$PWD/external/Uni3D
 ```
 
 Run:
 ```bash
-python metrics/shape_uni3d.py --results-dir results/gemini-3.1-pro-preview \
-                              --reference-dir benchmark/categories \
-                              --ckpt $UNI3D_CKPT \
-                              --n-points 10000
+python metrics/shape_uni3d.py --model gemini-3.1-pro-preview --results-root results \
+                              --data-root benchmark/categories \
+                              --n-points 8192
 ```
 
-Output: per-instance 3D&harr;3D cosine; `--mode 3d-text` also supported for
-prompt&harr;mesh.
+Output: per-instance 3D&harr;3D cosine (and a text/image-vs-shape CLIP score
+unless `--no-clip`).
 
 ---
 

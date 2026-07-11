@@ -47,6 +47,7 @@ If you use the released benchmark, dataset, or generated factories, please cite
 ├── configs/                one YAML per model (API key from env)
 ├── prompts/                system + template prompts
 ├── data_pipeline/          how 3DCodeData was curated: operators + key notes
+├── doc/                    method docs (e.g. the two renderers)
 ├── CONTRIBUTING.md         how to add new categories
 └── LICENSE
 ```
@@ -161,25 +162,35 @@ bash tasks/coding_agent/run_claude_agent.sh ArmChair_seed0
 ### Score the outputs
 
 ```bash
-RESULTS=results/gemini-3.1-pro-preview
+# Scorers take --model (the sub-folder name under --results-root) plus,
+# where a reference mesh/image is needed, --data-root (the benchmark set).
+MODEL=gemini-3.1-pro-preview
+ROOT=results
+DATA=benchmark/categories
 
 # Geometry-free scorers (no GPU required):
-python metrics/executability.py    --results-dir $RESULTS
-python metrics/shape_chamfer.py    --results-dir $RESULTS --reference-dir benchmark/categories
-python metrics/failure_taxonomy.py --results-dir $RESULTS
+python metrics/executability.py    --model $MODEL --results-root $ROOT
+python metrics/shape_chamfer.py    --model $MODEL --results-root $ROOT --data-root $DATA
+python metrics/failure_taxonomy.py --roots $ROOT/$MODEL
 
 # Image-grounded scorers (need GPU + SigLIP-2 / DINOv3 weights):
-python metrics/image_similarity.py --results-dir $RESULTS --reference-dir benchmark/categories \
-                                   --model siglip2-base
-python metrics/image_similarity.py --results-dir $RESULTS --reference-dir benchmark/categories \
-                                   --model dinov3
+python metrics/image_similarity.py --model $MODEL --results-root $ROOT --data-root $DATA \
+                                   --encoder siglip2
+python metrics/image_similarity.py --model $MODEL --results-root $ROOT --data-root $DATA \
+                                   --encoder dinov3
 
 # 3D-3D scorer (needs Uni3D weights):
-python metrics/shape_uni3d.py      --results-dir $RESULTS --reference-dir benchmark/categories
+python metrics/shape_uni3d.py      --model $MODEL --results-root $ROOT --data-root $DATA
 
 # LLM-as-judge (pairwise or absolute):
-python metrics/llm_judge/judge.py  --mode image --results-dir $RESULTS
+python metrics/llm_judge/judge.py  --judge gemini-3.1-pro-preview --mode image
 ```
+
+> **Both `shape_chamfer.py` and `shape_uni3d.py` compare exported GLBs, so run
+> [`core/export_glb.py`](core/export_glb.py) on both the model results and the
+> reference set first** — e.g. `python core/export_glb.py --model $MODEL
+> --results-root $ROOT` (and once for the reference factories under
+> `--data-root`). Pass `--help` to any scorer for the full flag list.
 
 See [`metrics/README.md`](metrics/README.md) for the full setup of SigLIP-2,
 DINOv3, and Uni3D (model weights, conda env, GPU notes).
@@ -295,6 +306,13 @@ uses two distinct seeds (raw `idx` for parameter sampling, `int_hash((idx,idx))`
 for geometry), and conflating them silently produces objects with the wrong
 proportions. See [`data_pipeline/README.md`](data_pipeline/README.md) for the
 full picture.
+
+For the two multi-view renderers — the reference/eval renderer
+([`core/render.py`](core/render.py)) that produces the `Image_0X5` views and the
+parts-colored curation renderer
+([`data_pipeline/operators/renderer.py`](data_pipeline/operators/renderer.py)) —
+their camera convention, scene setup, and outputs are documented in
+[`doc/README.md`](doc/README.md).
 
 ## Contributing
 

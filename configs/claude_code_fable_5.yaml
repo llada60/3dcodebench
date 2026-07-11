@@ -32,7 +32,7 @@ max_images: null
 include_description: false
 
 # --- Runtime ---
-max_workers: 4
+max_workers: 1
 rpm: null
 tpm: null
 overwrite: false
