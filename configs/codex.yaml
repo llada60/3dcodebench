@@ -1,0 +1,39 @@
+# Codex CLI (its default model, currently gpt-5.5) — parity with 3D-CoT's
+#   pixi run python inference_geometry_oneshot.py --generator_type codex
+#
+# The same pycodex client (bundled in the 3D-CoT tasksolver wheel) runs the
+# instrumented `codex exec` in a throwaway workspace. Auth: an api_key here
+# (or OPENAI_API_KEY) is forwarded to codex; otherwise it falls back to the
+# local `codex login` (~/.codex/auth.json). Reference images are written to
+# local files and referenced in the prompt as "Image i: <path>" lines,
+# exactly like pycodex.CodexModel.prepare_payload.
+#
+# Run from the 3D-CoT pixi env so pycodex is importable:
+#   pixi run python tasks/image_to_3d/run.py --config configs/codex.yaml
+provider: codex
+api_key: null      # null = OPENAI_API_KEY env or `codex login`
+
+# Same alias rule as tasksolver/agent.py: plain `codex` lets the CLI pick its
+# default model; `codex-<model>` -> `codex exec -m <model>` (suffix verbatim,
+# e.g. `codex-gpt-5-codex`). NOTE: pinned `-codex` models are rejected with a
+# 400 under ChatGPT-account login ("not supported when using Codex with a
+# ChatGPT account") — pinning needs API-key auth.
+model: codex
+
+task: image_to_3d
+
+# Ignored by the codex provider — the CLI owns generation. Kept explicit so
+# nobody assumes they apply.
+temperature: null
+thinking: medium
+max_output_tokens: 100000
+seed: null
+
+# CodexModel.rough_guess(max_tries=1) allows a single re-query when the
+# response fails to parse; mirror that here.
+parse_retries: 1
+
+output_dir: null   # null = results/<model>/ (i.e. results/codex/)
+max_workers: 4     # one codex process at a time (3D-CoT one-shot runs serially)
+rpm: null
+tpm: null

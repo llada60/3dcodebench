@@ -26,3 +26,6 @@ __pycache__/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Benchmark data (machine-local symlink, e.g. -> ../../data/3DCodeBench)
+/benchmark/categories

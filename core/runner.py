@@ -16,6 +16,8 @@ by the `provider` field (default: gemini):
     - anthropic -> anthropic SDK (Claude)
     - openai    -> openai SDK (GPT-5.x)
     - gemini_cli -> local Gemini CLI login
+    - agy       -> local Antigravity CLI login (pyagy, 3D-CoT tasksolver wheel)
+    - codex     -> local Codex CLI (pycodex, 3D-CoT tasksolver wheel)
 
 Examples:
     python run_inference.py --config config/gemini_3_flash.yaml
@@ -61,7 +63,7 @@ DEFAULT_LOG_ROOT = REPO_ROOT / "logs"
 EVAL_ROOT = CORE_DIR
 
 DEFAULTS = {
-    "provider": "gemini",       # gemini | anthropic | openai | claude_code | gemini_cli
+    "provider": "gemini",       # gemini | anthropic | openai | claude_code | gemini_cli | agy | codex
     "api_key": None,
     "model": "gemini-3-flash",
     "temperature": 0.7,
@@ -98,6 +100,15 @@ DEFAULTS = {
     "overwrite": False,
     "rpm": None,                # provider RPM cap; null disables RPM throttle
     "tpm": None,                # provider TPM cap; null disables TPM throttle
+    "codex_bin": None,          # codex provider only: run this codex CLI (a bare
+                                # name resolves on PATH) instead of the wirecap-
+                                # patched binary bundled in the tasksolver wheel.
+                                # Needed when the backend gates a model on a newer
+                                # CLI than the bundled one (e.g. gpt-5.6-sol).
+                                # $CODEX_BIN is the env equivalent. External
+                                # binaries have no wirecap bridge, so the adapter
+                                # switches to `codex exec --json` and parses the
+                                # event stream for text + usage.
     "max_sweeps": 3,            # extra full-pass retries after the main run
                                 # (each pass only re-attempts instances with no .py)
     "parse_retries": 3,         # in-call resamples if response fails ast.parse
@@ -139,7 +150,7 @@ def parse_cli():
     p.add_argument("--config", type=Path, required=True,
                    help="Path to a YAML config file under eval/config/.")
     # All overrides default to None so we can tell whether the user passed them.
-    p.add_argument("--provider", choices=["gemini", "anthropic", "openai", "claude_code", "gemini_cli"], default=None)
+    p.add_argument("--provider", choices=["gemini", "anthropic", "openai", "claude_code", "gemini_cli", "agy", "codex"], default=None)
     p.add_argument("--api-key", default=None)
     p.add_argument("--model", default=None)
     p.add_argument("--temperature", type=float, default=None)
@@ -207,9 +218,10 @@ def resolve_settings(cli):
             settings[key] = cli_val
 
     # API key: explicit value > provider-specific env var.
-    # CLI providers use their own logged-in subscription auth and need no API key.
+    # CLI providers use their own logged-in subscription auth and need no API
+    # key (codex optionally honours api_key / OPENAI_API_KEY over its login).
     provider = settings["provider"]
-    if provider not in ("claude_code", "gemini_cli"):
+    if provider not in ("claude_code", "gemini_cli", "agy", "codex"):
         env_var = {
             "gemini":    "GEMINI_API_KEY",
             "anthropic": "ANTHROPIC_API_KEY",
@@ -972,10 +984,23 @@ def main():
                     for d in targets
                 }
                 for fut in as_completed(futures):
-                    consume(*fut.result())
+                    # One instance crashing must not abort the whole pass
+                    # (it also silently discards every queued instance).
+                    try:
+                        result = fut.result()
+                    except Exception as e:
+                        print(f"  [CRASH    ] {futures[fut].name}  "
+                              f"{type(e).__name__}: {e}")
+                        continue
+                    consume(*result)
         else:
             for d in targets:
-                consume(*handler(ctx, settings, system_prompt, output_dir, d))
+                try:
+                    result = handler(ctx, settings, system_prompt, output_dir, d)
+                except Exception as e:
+                    print(f"  [CRASH    ] {d.name}  {type(e).__name__}: {e}")
+                    continue
+                consume(*result)
 
     run_pass(instance_dirs)
 

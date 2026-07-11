@@ -1,0 +1,26 @@
+# GPT-5.5 through the same Codex CLI / pycodex route as codex.yaml.
+# Run from 3dcodebench/:
+#   pixi run python tasks/image_to_3d/run.py \
+#     --config configs/codex-gpt-5.5.yaml \
+#     --render-views --max-render-retries 5 --max-images 4
+provider: codex
+api_key: null      # OPENAI_API_KEY, otherwise local `codex login`
+
+# The codex provider strips the `codex-` prefix and invokes:
+#   codex exec -m gpt-5.5
+model: codex-gpt-5.5
+
+task: image_to_3d
+
+# The Codex CLI owns these generation settings.
+temperature: null
+thinking: medium
+max_output_tokens: 100000
+seed: null
+
+parse_retries: 1
+
+output_dir: null   # results/codex-gpt-5.5_image_to_3d/
+max_workers: 4
+rpm: null
+tpm: null

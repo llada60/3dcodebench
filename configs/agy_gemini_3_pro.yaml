@@ -1,0 +1,35 @@
+# Gemini 3 Pro via the local Antigravity `agy` CLI — parity with 3D-CoT's
+#   pixi run python inference_geometry_oneshot.py --generator_type agy-gemini-3-pro
+#
+# The same pyagy client (bundled in the 3D-CoT tasksolver wheel) runs
+# `agy --print --model gemini-3-pro` under a PTY in a git workspace, reusing
+# the local Antigravity login (~/.gemini/antigravity-cli/). No API key.
+# Reference images are written to local files and referenced in the prompt as
+# "Image i: <path>" lines, exactly like pyagy.AgyModel.prepare_payload.
+#
+# Run from the 3D-CoT pixi env so pyagy is importable:
+#   pixi run python tasks/image_to_3d/run.py --config configs/agy_gemini_3_pro.yaml
+provider: agy
+api_key: null
+
+# Same alias rule as tasksolver/agent.py: `agy-<model>` -> `agy --model <model>`
+# (suffix passed through verbatim); plain `agy` lets the CLI pick its default.
+model: agy-gemini-3-pro
+
+task: image_to_3d
+
+# Ignored by the agy provider — the CLI owns generation. Kept explicit so
+# nobody assumes they apply.
+temperature: null
+thinking: medium
+max_output_tokens: 100000
+seed: null
+
+# AgyModel.rough_guess(max_tries=1) allows a single re-query when the
+# response fails to parse; mirror that here.
+parse_retries: 1
+
+output_dir: null   # null = results/<model>/ (i.e. results/agy-gemini-3-pro/)
+max_workers: 4     # one agy PTY process at a time (3D-CoT one-shot runs serially)
+rpm: null
+tpm: null

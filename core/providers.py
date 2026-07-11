@@ -101,6 +101,9 @@ QUOTA_MARKERS = (
     "429", "resource_exhausted",
     "503", "unavailable", "service_unavailable",
     "rate_limit", "rate-limit", "overloaded", "quota",
+    "usage limit",   # codex CLI: subscription window cap ("You've hit your
+                     # usage limit ... try again at <time>") — resets on its
+                     # own, so waiting it out beats failing the instance
 )
 QUOTA_BACKOFF_S = (10, 30, 60, 120, 300)  # caps at 300s after 5th attempt
 QUOTA_RETRY_CAP = 60                       # absolute upper bound (~hours)
@@ -822,12 +825,302 @@ def call_gemini_cli(ctx, settings, system_prompt, user_content,
     return text, usage
 
 
+# ---- Antigravity (agy) CLI adapter -----------------------------------------
+# Parity with 3D-CoT's
+#   python inference_geometry_oneshot.py --generator_type agy-gemini-3-pro
+# (TaskSolver's pyagy.AgyModel): the same pyagy client runs `agy --print`
+# under a PTY in a git workspace, reusing the local Antigravity login
+# (~/.gemini/antigravity-cli/) — no API key. Prompt shape mirrors
+# AgyModel.prepare_payload: an image-hint block + "Image i: <path>" lines
+# first, then all text (the system prompt folded in — agy has no separate
+# system channel), joined with blank lines. settings.temperature / thinking /
+# max_output_tokens / seed are ignored — the CLI owns generation.
+
+
+def _resolve_agy_model(model):
+    """`agy` / `antigravity` -> None (agy's default model); `agy-<model>` ->
+    the suffix verbatim (`agy-gemini-3-pro` -> `gemini-3-pro`, the same rule
+    as tasksolver/agent.py); bare ids (`gemini-3-pro`) pass through."""
+    if model in (None, "agy", "antigravity"):
+        return None
+    if model.startswith("agy-"):
+        suffix = model[len("agy-"):]
+        if not suffix:
+            raise SystemExit(
+                f"Empty agy model suffix in {model!r}; use `agy` or "
+                "`agy-<model>` (e.g. `agy-gemini-3-pro`)."
+            )
+        return suffix
+    return model
+
+
+def _flatten_to_agy_prompt(system_prompt, user_content, image_dir):
+    """AgyModel.prepare_payload parity: the image hint + `Image i: <path>`
+    lines come first, then every text part, all joined with blank lines."""
+    strings, image_paths = [], []
+    if system_prompt:
+        strings.append(system_prompt)
+    if isinstance(user_content, str):
+        if user_content:
+            strings.append(user_content)
+    else:
+        for i, p in enumerate(user_content, 1):
+            if p["type"] == "text":
+                strings.append(p["text"])
+            elif p["type"] == "image":
+                ext = (p.get("mime", "image/png").split("/")[-1] or "png")
+                fname = p.get("name") or f"reference_{i}.{ext}"
+                dst = _os.path.join(image_dir, fname)
+                with open(dst, "wb") as f:
+                    f.write(p["data"])
+                image_paths.append(dst)
+            else:
+                raise ValueError(f"unknown part type: {p['type']!r}")
+    parts = []
+    if image_paths:
+        parts.append("The visual inputs are saved as local image files. Use the Read "
+                     "tool to inspect them when answering.")
+        parts.extend(f"Image {i}: {p}" for i, p in enumerate(image_paths, 1))
+    parts.extend(strings)
+    return "\n\n".join(parts)
+
+
+def call_agy(ctx, settings, system_prompt, user_content):
+    import shutil as _shutil
+    import tempfile as _tempfile
+
+    agy_ask = ctx["agy_ask"]
+    _os.makedirs(CLI_WORKSPACE_ROOT, exist_ok=True)
+    # Holds the reference images only; pyagy creates its own git workspace
+    # for the agy run (workspace=None), exactly like AgyModel without an
+    # explicit workspace. Absolute paths keep the images reachable from there.
+    image_dir = _tempfile.mkdtemp(prefix="agy_img_", dir=CLI_WORKSPACE_ROOT)
+    try:
+        prompt = _flatten_to_agy_prompt(system_prompt, user_content, image_dir)
+        # 1800 = the print_timeout tasksolver/agent.py passes to AgyModel.
+        timeout = getattr(settings, "cli_timeout", None) or 1800
+        r = agy_ask(prompt, model=ctx["agy_model"], timeout=timeout)
+        if not r.text:
+            # Same failure surface as AgyModel._finish.
+            raise RuntimeError(
+                "agy --print returned no output "
+                f"(exit_status={r.exit_status}, workspace={r.workspace}). "
+                "Ensure agy is logged in (~/.gemini/antigravity-cli/) and reachable. "
+                f"Transcript head:\n{r.transcript[:500]}"
+            )
+    finally:
+        _shutil.rmtree(image_dir, ignore_errors=True)
+
+    u = r.usage
+    return r.text, {
+        "input_tokens":          u.prompt_tokens,
+        "output_tokens":         u.candidates_tokens,
+        # Gemini 3 thinks dynamically (agy sends no explicit thinkingConfig);
+        # the wire capture's raw usage carries the actual spend.
+        "thoughts_tokens":       (u.raw or {}).get("thoughtsTokenCount"),
+        "total_tokens":          u.total_tokens,
+        "cache_read_tokens":     0,
+        "cache_creation_tokens": 0,
+    }
+
+
+# ---- Codex CLI adapter ------------------------------------------------------
+# Parity with 3D-CoT's
+#   python inference_geometry_oneshot.py --generator_type codex-gpt-5-codex
+# (TaskSolver's pycodex.CodexModel): the same pycodex client runs the bundled,
+# wirecap-instrumented `codex exec` and reads the decoded turn from its
+# capture JSONL. Auth: an explicit api_key is forwarded as OPENAI_API_KEY;
+# otherwise the inherited environment, else the local `codex login`
+# (~/.codex/auth.json). Prompt shape mirrors CodexModel.prepare_payload: an
+# image-hint block + "Image i: <path>" lines first, then all text (the system
+# prompt folded in — `codex exec` has no separate system channel).
+# settings.temperature / thinking / max_output_tokens / seed are ignored —
+# the CLI owns generation.
+#
+# settings.codex_bin / $CODEX_BIN swap in an external codex CLI (a bare name
+# resolves on PATH) for models the backend gates on a newer client than the
+# bundled build (e.g. gpt-5.6-sol). External binaries lack the wirecap bridge,
+# so that mode runs `codex exec --json` and parses the event stream instead of
+# the capture JSONL.
+
+
+def _resolve_codex_model(model):
+    """`codex` -> None (codex's default model); `codex-<model>` -> the suffix
+    verbatim (`codex-gpt-5-codex` -> `codex exec -m gpt-5-codex`, the same
+    rule as tasksolver/agent.py); bare ids (`gpt-5-codex`) pass through."""
+    if model in (None, "codex"):
+        return None
+    if model.startswith("codex-"):
+        suffix = model[len("codex-"):]
+        if not suffix:
+            raise SystemExit(
+                f"Empty codex model suffix in {model!r}; use `codex` or "
+                "`codex-<model>` (e.g. `codex-gpt-5-codex`)."
+            )
+        return suffix
+    return model
+
+
+def _resolve_codex_bin(settings):
+    """Optional external codex CLI: settings.codex_bin (config) else $CODEX_BIN.
+    A bare name resolves on PATH; None -> the bundled wirecap-patched codex."""
+    import shutil as _shutil
+    spec = getattr(settings, "codex_bin", None) or _os.environ.get("CODEX_BIN")
+    if not spec:
+        return None
+    spec = _os.path.expanduser(spec)
+    path = _shutil.which(spec) if _os.sep not in spec else spec
+    if not path or not (_os.path.isfile(path) and _os.access(path, _os.X_OK)):
+        raise SystemExit(f"codex_bin {spec!r} not found or not executable.")
+    return _os.path.abspath(path)
+
+
+def _parse_codex_json_events(transcript):
+    """Parse `codex exec --json` stdout. Returns (text, usage_dict, errors):
+    the last agent_message text, the summed turn.completed usage (pycodex
+    Usage field names), and any error-event messages."""
+    text, errors = "", []
+    usage = {"input_tokens": 0, "cached_input_tokens": 0,
+             "output_tokens": 0, "reasoning_output_tokens": 0}
+    for line in transcript.splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            obj = _json.loads(line)
+        except ValueError:
+            continue
+        kind = obj.get("type")
+        if kind == "item.completed":
+            item = obj.get("item") or {}
+            if item.get("type") == "agent_message" and item.get("text"):
+                text = item["text"]
+        elif kind == "turn.completed":
+            m = obj.get("usage") or {}
+            for k in usage:
+                usage[k] += m.get(k) or 0
+        elif kind == "error":
+            errors.append(obj.get("message") or _json.dumps(obj))
+    return text, usage, errors
+
+
+def _flatten_to_codex_prompt(system_prompt, user_content, image_dir):
+    """CodexModel.prepare_payload parity: the image hint + `Image i: <path>`
+    lines come first, then every text part, all joined with blank lines."""
+    strings, image_paths = [], []
+    if system_prompt:
+        strings.append(system_prompt)
+    if isinstance(user_content, str):
+        if user_content:
+            strings.append(user_content)
+    else:
+        for i, p in enumerate(user_content, 1):
+            if p["type"] == "text":
+                strings.append(p["text"])
+            elif p["type"] == "image":
+                ext = (p.get("mime", "image/png").split("/")[-1] or "png")
+                fname = p.get("name") or f"reference_{i}.{ext}"
+                dst = _os.path.join(image_dir, fname)
+                with open(dst, "wb") as f:
+                    f.write(p["data"])
+                image_paths.append(dst)
+            else:
+                raise ValueError(f"unknown part type: {p['type']!r}")
+    parts = []
+    if image_paths:
+        parts.append("The visual inputs are saved as local image files; "
+                     "read them when answering.")
+        parts.extend(f"Image {i}: {p}" for i, p in enumerate(image_paths, 1))
+    parts.extend(strings)
+    return "\n\n".join(parts)
+
+
+def call_codex(ctx, settings, system_prompt, user_content):
+    import shutil as _shutil
+    import tempfile as _tempfile
+
+    codex_ask = ctx["codex_ask"]
+    _os.makedirs(CLI_WORKSPACE_ROOT, exist_ok=True)
+    # Per-call workspace, unlike CodexModel (serial, shared scratch repo):
+    # workers here run concurrently and pycodex truncates + re-reads
+    # `codex-capture.jsonl` inside the workspace on every call, so a shared
+    # workspace would cross-read turns. `codex exec` runs with
+    # --skip-git-repo-check, so a plain temp dir suffices. The reference
+    # images live in the same dir, reachable by absolute path from the prompt.
+    workspace = _tempfile.mkdtemp(prefix="codex_ws_", dir=CLI_WORKSPACE_ROOT)
+    try:
+        prompt = _flatten_to_codex_prompt(system_prompt, user_content, workspace)
+        # 1800 = the timeout tasksolver/agent.py passes to CodexModel.
+        timeout = getattr(settings, "cli_timeout", None) or 1800
+        kwargs = {"model": ctx["codex_model"], "workspace": workspace,
+                  "timeout": timeout}
+        # The reference images live inside this /tmp workspace and the model
+        # is told to read them itself, but codex's view_image/shell tooling
+        # runs through the bwrap fs-sandbox helper: under the default
+        # read-only policy the images are unreachable, and on kernels without
+        # user namespaces (e.g. WSL2) bwrap cannot start at all — the model
+        # then silently answers blind. Full access keeps the read tools
+        # working; isolation comes from the per-call workspace cwd.
+        flags = ["--sandbox", "danger-full-access"]
+        external_bin = ctx.get("codex_bin")
+        if external_bin:
+            # No wirecap bridge in an external codex: the capture JSONL stays
+            # empty, so ask for the machine-readable event stream instead.
+            kwargs["codex_bin"] = external_bin
+            flags.append("--json")
+        kwargs["extra_flags"] = flags
+        if ctx.get("codex_env"):
+            kwargs["extra_env"] = ctx["codex_env"]
+        r = codex_ask(prompt, **kwargs)
+        if external_bin:
+            from pycodex import Usage as _CodexUsage
+            text, u, errors = _parse_codex_json_events(r.transcript)
+            if not text:
+                raise RuntimeError(
+                    "codex exec --json returned no agent message "
+                    f"(exit_status={r.exit_status}, codex_bin={external_bin}, "
+                    f"workspace={r.workspace}). "
+                    "Ensure codex is authenticated (OPENAI_API_KEY or `codex login`). "
+                    + (f"Errors: {'; '.join(errors[:3])}" if errors else
+                       f"Transcript head:\n{r.transcript[:500]}")
+                )
+            usage = _CodexUsage(
+                total_tokens=u["input_tokens"] + u["output_tokens"], **u)
+        else:
+            if not r.text:
+                # Same failure surface as CodexModel._finish.
+                raise RuntimeError(
+                    "codex exec returned no output "
+                    f"(exit_status={r.exit_status}, workspace={r.workspace}). "
+                    "Ensure codex is authenticated (OPENAI_API_KEY or `codex login`). "
+                    f"Transcript head:\n{r.transcript[:500]}"
+                )
+            text, usage = r.text, r.usage
+    finally:
+        _shutil.rmtree(workspace, ignore_errors=True)
+
+    # codex TokenUsage semantics match the OpenAI /v1/responses shape:
+    # input_tokens includes cached, output_tokens includes reasoning. Split
+    # them the same way call_openai_responses does.
+    reasoning = usage.reasoning_output_tokens or 0
+    return text, {
+        "input_tokens":          usage.input_tokens - usage.cached_input_tokens,
+        "output_tokens":         usage.output_tokens - reasoning,
+        "thoughts_tokens":       reasoning or None,
+        "total_tokens":          usage.total_tokens,
+        "cache_read_tokens":     usage.cached_input_tokens,
+        "cache_creation_tokens": 0,
+    }
+
+
 _PROVIDER_FUNCS = {
     "gemini":     call_gemini,
     "anthropic":  call_anthropic,
     "openai":     call_openai,
     "claude_code": call_claude_code,
     "gemini_cli": call_gemini_cli,
+    "agy":        call_agy,
+    "codex":      call_codex,
 }
 
 
@@ -862,6 +1155,38 @@ def build_provider_ctx(settings):
         # No SDK client — the adapter shells out to the local `gemini` CLI.
         # Auth comes from the Gemini CLI login / subscription state.
         ctx = {"client": None, "cli_model": _resolve_gemini_cli_model(settings.model)}
+    elif settings.provider == "agy":
+        # No SDK client — pyagy drives the local Antigravity `agy` CLI
+        # (bundled in the 3D-CoT tasksolver wheel). Auth comes from the
+        # agy login; AGY_BIN/AGY_SHIM env vars override the bundled binary.
+        try:
+            from pyagy import ask as agy_ask
+        except ImportError:
+            raise SystemExit(
+                "pyagy not importable. It ships inside the 3D-CoT tasksolver "
+                "wheel — run from the 3D-CoT pixi env (e.g. `pixi run python "
+                "tasks/image_to_3d/run.py ...`)."
+            )
+        ctx = {"client": None, "agy_ask": agy_ask,
+               "agy_model": _resolve_agy_model(settings.model)}
+    elif settings.provider == "codex":
+        # No SDK client — pycodex drives the local `codex` CLI (bundled in
+        # the 3D-CoT tasksolver wheel; settings.codex_bin / $CODEX_BIN swap in
+        # an external binary — see call_codex). Auth comes from
+        # settings.api_key / OPENAI_API_KEY, else the local `codex login`.
+        try:
+            from pycodex import ask as codex_ask
+        except ImportError:
+            raise SystemExit(
+                "pycodex not importable. It ships inside the 3D-CoT tasksolver "
+                "wheel — run from the 3D-CoT pixi env (e.g. `pixi run python "
+                "tasks/image_to_3d/run.py ...`)."
+            )
+        ctx = {"client": None, "codex_ask": codex_ask,
+               "codex_model": _resolve_codex_model(settings.model),
+               "codex_bin": _resolve_codex_bin(settings)}
+        if settings.api_key:
+            ctx["codex_env"] = {"OPENAI_API_KEY": settings.api_key}
     else:
         raise SystemExit(f"Unknown provider: {settings.provider!r}")
 
