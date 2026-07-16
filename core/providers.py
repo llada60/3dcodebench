@@ -653,16 +653,25 @@ def call_claude_code(ctx, settings, system_prompt, user_content,
                "--permission-mode", "acceptEdits"]
         if model:
             cmd += ["--model", model]
+        effort = getattr(settings, "thinking", None)
+        if isinstance(effort, str) and effort:
+            cmd += ["--effort", effort]
         return cmd
 
     timeout = getattr(settings, "cli_timeout", None) or 1200
+    env = _os.environ.copy()
+    max_output_tokens = getattr(settings, "max_output_tokens", None)
+    if isinstance(max_output_tokens, int) and max_output_tokens > 0:
+        env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] = str(max_output_tokens)
     try:
         completed = _subprocess.run(build("--tools"), check=False, cwd=workspace,
-                                    capture_output=True, text=True, timeout=timeout)
+                                    capture_output=True, text=True, timeout=timeout,
+                                    env=env)
         # Older CLIs use --allowedTools instead of --tools.
         if completed.returncode != 0 and "unknown option" in (completed.stderr or "").lower():
             completed = _subprocess.run(build("--allowedTools"), check=False, cwd=workspace,
-                                        capture_output=True, text=True, timeout=timeout)
+                                        capture_output=True, text=True, timeout=timeout,
+                                        env=env)
 
         stdout = (completed.stdout or "").strip()
         stderr = (completed.stderr or "").strip()
