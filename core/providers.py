@@ -599,6 +599,28 @@ def _flatten_to_prompt(system_prompt, user_content, workspace):
     return "\n\n".join(parts), image_names
 
 
+def _copy_back_generated(workspace, out_dir, skip_names):
+    """Copy model-generated files from a per-call CLI workspace back to
+    results/<model>/<instance>/ before teardown. `skip_names` lists top-level
+    entries that were copied IN (reference images) or that the CLI tooling
+    created for itself (capture logs, .git) — only what the model produced
+    belongs in results/. No-op when `out_dir` is None."""
+    import shutil as _shutil
+    if not out_dir:
+        return
+    skip = set(skip_names)
+    _os.makedirs(out_dir, exist_ok=True)
+    for entry in _os.listdir(workspace):
+        if entry in skip:
+            continue
+        src = _os.path.join(workspace, entry)
+        dst = _os.path.join(out_dir, entry)
+        if _os.path.isdir(src):
+            _shutil.copytree(src, dst, dirs_exist_ok=True)
+        else:
+            _shutil.copy2(src, dst)
+
+
 def call_claude_code(ctx, settings, system_prompt, user_content,
                      instance=None, cli_out_dir=None):
     """Run one inference via the Claude Code CLI in print mode.
@@ -645,23 +667,9 @@ def call_claude_code(ctx, settings, system_prompt, user_content,
         stdout = (completed.stdout or "").strip()
         stderr = (completed.stderr or "").strip()
 
-        # Copy the model-generated files back to results/<model>/<instance>/
-        # before teardown. The reference images we copied IN are excluded —
-        # only what the model produced belongs in results/. `out_dir` is passed
-        # per-call by the caller (thread-safe; ctx is shared across workers).
-        out_dir = cli_out_dir
-        if out_dir:
-            skip = set(ref_image_names)
-            _os.makedirs(out_dir, exist_ok=True)
-            for entry in _os.listdir(workspace):
-                if entry in skip:
-                    continue
-                src = _os.path.join(workspace, entry)
-                dst = _os.path.join(out_dir, entry)
-                if _os.path.isdir(src):
-                    _shutil.copytree(src, dst, dirs_exist_ok=True)
-                else:
-                    _shutil.copy2(src, dst)
+        # `cli_out_dir` is passed per-call by the caller (thread-safe; ctx is
+        # shared across workers).
+        _copy_back_generated(workspace, cli_out_dir, ref_image_names)
     finally:
         _shutil.rmtree(workspace, ignore_errors=True)
 
@@ -826,15 +834,15 @@ def call_gemini_cli(ctx, settings, system_prompt, user_content,
 
 
 # ---- Antigravity (agy) CLI adapter -----------------------------------------
-# Parity with 3D-CoT's
-#   python inference_geometry_oneshot.py --generator_type agy-gemini-3-pro
-# (TaskSolver's pyagy.AgyModel): the same pyagy client runs `agy --print`
-# under a PTY in a git workspace, reusing the local Antigravity login
-# (~/.gemini/antigravity-cli/) — no API key. Prompt shape mirrors
-# AgyModel.prepare_payload: an image-hint block + "Image i: <path>" lines
-# first, then all text (the system prompt folded in — agy has no separate
-# system channel), joined with blank lines. settings.temperature / thinking /
-# max_output_tokens / seed are ignored — the CLI owns generation.
+# The same pyagy client as TaskSolver's AgyModel runs `agy --print` under a
+# PTY, reusing the local Antigravity login (~/.gemini/antigravity-cli/) — no
+# API key. Isolation matches call_claude_code (NOT AgyModel's separate
+# image-dir layout): each call gets a fresh workspace under
+# /tmp/agent_generation/, passed to pyagy as the run's git workspace (cwd);
+# reference images are copied in and referenced by bare filename via the
+# shared _flatten_to_prompt, so agy's Read tool never leaves the workspace.
+# settings.temperature / thinking / max_output_tokens / seed are ignored —
+# the CLI owns generation.
 
 
 def _resolve_agy_model(model):
@@ -854,52 +862,53 @@ def _resolve_agy_model(model):
     return model
 
 
-def _flatten_to_agy_prompt(system_prompt, user_content, image_dir):
-    """AgyModel.prepare_payload parity: the image hint + `Image i: <path>`
-    lines come first, then every text part, all joined with blank lines."""
-    strings, image_paths = [], []
-    if system_prompt:
-        strings.append(system_prompt)
-    if isinstance(user_content, str):
-        if user_content:
-            strings.append(user_content)
-    else:
-        for i, p in enumerate(user_content, 1):
-            if p["type"] == "text":
-                strings.append(p["text"])
-            elif p["type"] == "image":
-                ext = (p.get("mime", "image/png").split("/")[-1] or "png")
-                fname = p.get("name") or f"reference_{i}.{ext}"
-                dst = _os.path.join(image_dir, fname)
-                with open(dst, "wb") as f:
-                    f.write(p["data"])
-                image_paths.append(dst)
-            else:
-                raise ValueError(f"unknown part type: {p['type']!r}")
-    parts = []
-    if image_paths:
-        parts.append("The visual inputs are saved as local image files. Use the Read "
-                     "tool to inspect them when answering.")
-        parts.extend(f"Image {i}: {p}" for i, p in enumerate(image_paths, 1))
-    parts.extend(strings)
-    return "\n\n".join(parts)
+# pyagy workspace artifacts (the git repo we init below + pyagy's capture and
+# shim logs) — excluded from the results copy-back alongside the reference
+# images.
+_AGY_WORKSPACE_ARTIFACTS = (".git", "pyagy-capture.jsonl", "pyagy-shim.log")
 
 
-def call_agy(ctx, settings, system_prompt, user_content):
+def _git_init_workspace(workspace):
+    """Make the per-call workspace a git repo with an initial commit, the
+    shape pyagy's own scratch workspace has (`ensure_git_workspace` returns an
+    explicit path verbatim WITHOUT initialising it, but agy expects to run in
+    a git workspace). Commits whatever is already in the dir (the reference
+    images) — the workspace is throwaway."""
+    import pygit2
+    repo = pygit2.init_repository(workspace)
+    repo.index.add_all()
+    repo.index.write()
+    tree = repo.index.write_tree()
+    sig = pygit2.Signature("3dcodebench", "3dcodebench@local")
+    repo.create_commit("HEAD", sig, sig, "init", tree, [])
+
+
+def call_agy(ctx, settings, system_prompt, user_content,
+             instance=None, cli_out_dir=None):
+    """Run one inference via the Antigravity `agy` CLI in print mode.
+
+    Isolation matches call_claude_code: a fresh per-call workspace (agy's
+    cwd) with the reference images copied in and referenced by bare
+    filename, model-generated files copied back to results/ (reference
+    images and pyagy artifacts excluded), workspace removed afterwards.
+    agy has no claude-style `--tools` allowlist; confinement is the
+    workspace cwd that pyagy registers as the run's (trusted) git repo."""
     import shutil as _shutil
     import tempfile as _tempfile
 
     agy_ask = ctx["agy_ask"]
     _os.makedirs(CLI_WORKSPACE_ROOT, exist_ok=True)
-    # Holds the reference images only; pyagy creates its own git workspace
-    # for the agy run (workspace=None), exactly like AgyModel without an
-    # explicit workspace. Absolute paths keep the images reachable from there.
-    image_dir = _tempfile.mkdtemp(prefix="agy_img_", dir=CLI_WORKSPACE_ROOT)
+    workspace = _tempfile.mkdtemp(prefix="agy_ws_", dir=CLI_WORKSPACE_ROOT)
     try:
-        prompt = _flatten_to_agy_prompt(system_prompt, user_content, image_dir)
+        prompt, ref_image_names = _flatten_to_prompt(
+            system_prompt, user_content, workspace)
+        _git_init_workspace(workspace)
         # 1800 = the print_timeout tasksolver/agent.py passes to AgyModel.
         timeout = getattr(settings, "cli_timeout", None) or 1800
-        r = agy_ask(prompt, model=ctx["agy_model"], timeout=timeout)
+        r = agy_ask(prompt, model=ctx["agy_model"], workspace=workspace,
+                    timeout=timeout)
+        _copy_back_generated(workspace, cli_out_dir,
+                             list(ref_image_names) + list(_AGY_WORKSPACE_ARTIFACTS))
         if not r.text:
             # Same failure surface as AgyModel._finish.
             raise RuntimeError(
@@ -909,7 +918,7 @@ def call_agy(ctx, settings, system_prompt, user_content):
                 f"Transcript head:\n{r.transcript[:500]}"
             )
     finally:
-        _shutil.rmtree(image_dir, ignore_errors=True)
+        _shutil.rmtree(workspace, ignore_errors=True)
 
     u = r.usage
     return r.text, {
@@ -925,15 +934,14 @@ def call_agy(ctx, settings, system_prompt, user_content):
 
 
 # ---- Codex CLI adapter ------------------------------------------------------
-# Parity with 3D-CoT's
-#   python inference_geometry_oneshot.py --generator_type codex-gpt-5-codex
-# (TaskSolver's pycodex.CodexModel): the same pycodex client runs the bundled,
+# The same pycodex client as TaskSolver's CodexModel runs the bundled,
 # wirecap-instrumented `codex exec` and reads the decoded turn from its
 # capture JSONL. Auth: an explicit api_key is forwarded as OPENAI_API_KEY;
 # otherwise the inherited environment, else the local `codex login`
-# (~/.codex/auth.json). Prompt shape mirrors CodexModel.prepare_payload: an
-# image-hint block + "Image i: <path>" lines first, then all text (the system
-# prompt folded in — `codex exec` has no separate system channel).
+# (~/.codex/auth.json). Isolation matches call_claude_code (NOT
+# CodexModel's absolute-path prompt): each call gets a fresh workspace
+# (codex's cwd) with reference images copied in and referenced by bare
+# filename via the shared _flatten_to_prompt.
 # settings.temperature / thinking / max_output_tokens / seed are ignored —
 # the CLI owns generation.
 #
@@ -1004,38 +1012,20 @@ def _parse_codex_json_events(transcript):
     return text, usage, errors
 
 
-def _flatten_to_codex_prompt(system_prompt, user_content, image_dir):
-    """CodexModel.prepare_payload parity: the image hint + `Image i: <path>`
-    lines come first, then every text part, all joined with blank lines."""
-    strings, image_paths = [], []
-    if system_prompt:
-        strings.append(system_prompt)
-    if isinstance(user_content, str):
-        if user_content:
-            strings.append(user_content)
-    else:
-        for i, p in enumerate(user_content, 1):
-            if p["type"] == "text":
-                strings.append(p["text"])
-            elif p["type"] == "image":
-                ext = (p.get("mime", "image/png").split("/")[-1] or "png")
-                fname = p.get("name") or f"reference_{i}.{ext}"
-                dst = _os.path.join(image_dir, fname)
-                with open(dst, "wb") as f:
-                    f.write(p["data"])
-                image_paths.append(dst)
-            else:
-                raise ValueError(f"unknown part type: {p['type']!r}")
-    parts = []
-    if image_paths:
-        parts.append("The visual inputs are saved as local image files; "
-                     "read them when answering.")
-        parts.extend(f"Image {i}: {p}" for i, p in enumerate(image_paths, 1))
-    parts.extend(strings)
-    return "\n\n".join(parts)
+# pycodex's own workspace artifacts (it git-inits the dir and truncates +
+# re-reads its capture JSONL there every call) — excluded from the results
+# copy-back alongside the reference images.
+_CODEX_WORKSPACE_ARTIFACTS = (".git", "codex-capture.jsonl")
 
 
-def call_codex(ctx, settings, system_prompt, user_content):
+def call_codex(ctx, settings, system_prompt, user_content,
+               instance=None, cli_out_dir=None):
+    """Run one inference via the Codex CLI.
+
+    Isolation matches call_claude_code: a fresh per-call workspace (codex's
+    cwd) with the reference images copied in and referenced by bare
+    filename, model-generated files copied back to results/ (reference
+    images and pycodex artifacts excluded), workspace removed afterwards."""
     import shutil as _shutil
     import tempfile as _tempfile
 
@@ -1044,23 +1034,23 @@ def call_codex(ctx, settings, system_prompt, user_content):
     # Per-call workspace, unlike CodexModel (serial, shared scratch repo):
     # workers here run concurrently and pycodex truncates + re-reads
     # `codex-capture.jsonl` inside the workspace on every call, so a shared
-    # workspace would cross-read turns. `codex exec` runs with
-    # --skip-git-repo-check, so a plain temp dir suffices. The reference
-    # images live in the same dir, reachable by absolute path from the prompt.
+    # workspace would cross-read turns.
     workspace = _tempfile.mkdtemp(prefix="codex_ws_", dir=CLI_WORKSPACE_ROOT)
     try:
-        prompt = _flatten_to_codex_prompt(system_prompt, user_content, workspace)
+        prompt, ref_image_names = _flatten_to_prompt(
+            system_prompt, user_content, workspace)
         # 1800 = the timeout tasksolver/agent.py passes to CodexModel.
         timeout = getattr(settings, "cli_timeout", None) or 1800
         kwargs = {"model": ctx["codex_model"], "workspace": workspace,
                   "timeout": timeout}
-        # The reference images live inside this /tmp workspace and the model
-        # is told to read them itself, but codex's view_image/shell tooling
-        # runs through the bwrap fs-sandbox helper: under the default
-        # read-only policy the images are unreachable, and on kernels without
-        # user namespaces (e.g. WSL2) bwrap cannot start at all — the model
-        # then silently answers blind. Full access keeps the read tools
-        # working; isolation comes from the per-call workspace cwd.
+        # Permission parity with call_claude_code (`--tools Read` +
+        # `--add-dir`) is NOT achievable here: codex's view_image/shell
+        # tooling runs through the bwrap fs-sandbox helper, and bwrap needs
+        # unprivileged user namespaces, which this container blocks (verified
+        # via `codex sandbox <cmd>` → bwrap EPERM). Under ANY sandbox policy
+        # the read tools fail and the model silently answers blind. Full
+        # access keeps them working; isolation is the per-call workspace cwd
+        # with bare-filename image references.
         flags = ["--sandbox", "danger-full-access"]
         external_bin = ctx.get("codex_bin")
         if external_bin:
@@ -1072,6 +1062,8 @@ def call_codex(ctx, settings, system_prompt, user_content):
         if ctx.get("codex_env"):
             kwargs["extra_env"] = ctx["codex_env"]
         r = codex_ask(prompt, **kwargs)
+        _copy_back_generated(workspace, cli_out_dir,
+                             list(ref_image_names) + list(_CODEX_WORKSPACE_ARTIFACTS))
         if external_bin:
             from pycodex import Usage as _CodexUsage
             text, u, errors = _parse_codex_json_events(r.transcript)
@@ -1214,7 +1206,8 @@ def call_provider(ctx, settings, system_prompt, user_content,
     fn = _PROVIDER_FUNCS[settings.provider]
     limiter = ctx.get("rate_limiter")
     extra = ({"instance": instance, "cli_out_dir": out_dir}
-             if settings.provider in ("claude_code", "gemini_cli") else {})
+             if settings.provider in ("claude_code", "gemini_cli", "agy", "codex")
+             else {})
 
     quota_attempts = 0
     transient_attempts = 0

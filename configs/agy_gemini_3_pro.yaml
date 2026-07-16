@@ -4,8 +4,9 @@
 # The same pyagy client (bundled in the 3D-CoT tasksolver wheel) runs
 # `agy --print --model gemini-3-pro` under a PTY in a git workspace, reusing
 # the local Antigravity login (~/.gemini/antigravity-cli/). No API key.
-# Reference images are written to local files and referenced in the prompt as
-# "Image i: <path>" lines, exactly like pyagy.AgyModel.prepare_payload.
+# Reference images are copied into a fresh per-call workspace (agy's git
+# workspace / cwd) and referenced by bare filename as "Image i: <name>"
+# lines — the same isolation as the claude-code provider.
 #
 # Run from the 3D-CoT pixi env so pyagy is importable:
 #   pixi run python tasks/image_to_3d/run.py --config configs/agy_gemini_3_pro.yaml

@@ -4,9 +4,9 @@
 # The same pycodex client (bundled in the 3D-CoT tasksolver wheel) runs the
 # instrumented `codex exec` in a throwaway workspace. Auth: an api_key here
 # (or OPENAI_API_KEY) is forwarded to codex; otherwise it falls back to the
-# local `codex login` (~/.codex/auth.json). Reference images are written to
-# local files and referenced in the prompt as "Image i: <path>" lines,
-# exactly like pycodex.CodexModel.prepare_payload.
+# local `codex login` (~/.codex/auth.json). Reference images are copied into
+# a fresh per-call workspace (codex's cwd) and referenced by bare filename as
+# "Image i: <name>" lines — the same isolation as the claude-code provider.
 #
 # Run from the 3D-CoT pixi env so pycodex is importable:
 #   pixi run python tasks/image_to_3d/run.py --config configs/codex.yaml
