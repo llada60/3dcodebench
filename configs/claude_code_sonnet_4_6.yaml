@@ -15,8 +15,8 @@ api_key: null                   # ignored for claude_code
 # this label to the CLI's --model id (claude-sonnet-4-6).
 model: claude-code-sonnet-4-6
 temperature: 1.0                # ignored by the CLI; kept for record parity
-thinking: medium                # not forwarded to the CLI (it picks its own)
-max_output_tokens: 64000
+thinking: medium                # forwarded as `claude --effort medium`
+max_output_tokens: 64000        # forwarded through CLAUDE_CODE_MAX_OUTPUT_TOKENS
 
 # --- Eval scope ---
 prompt_type: description

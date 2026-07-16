@@ -20,7 +20,7 @@ api_key: null
 model: claude-code-opus-4-8
 temperature: 1.0
 thinking: medium
-max_output_tokens: 64000
+max_output_tokens: 10000
 
 # --- Eval scope ---
 task: image_to_3d
